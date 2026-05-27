@@ -6,12 +6,13 @@ from supabase import create_client, Client
 logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE")
+# Fallback to SUPABASE_KEY if SUPABASE_SERVICE_ROLE is missing (e.g., on Render environment)
+SUPABASE_SERVICE_ROLE = os.getenv("SUPABASE_SERVICE_ROLE") or os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE:
-    logger.error("SUPABASE_URL or SUPABASE_SERVICE_ROLE is not set in environment variables.")
+    logger.error("SUPABASE_URL or SUPABASE_KEY is not set in environment variables.")
 
-# Initialize Supabase client using Service Role to bypass RLS policies
+# Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE) if SUPABASE_URL and SUPABASE_SERVICE_ROLE else None
 
 def get_db():
