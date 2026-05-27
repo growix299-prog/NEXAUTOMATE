@@ -79,6 +79,15 @@ def get_order_by_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         logger.error(f"Error fetching order by payment_id {payment_id}: {str(e)}")
     return None
 
+def get_pending_order_by_user_and_product(telegram_id: int, product_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        response = supabase.table("orders").select("*, products(*)").eq("telegram_id", telegram_id).eq("product_id", product_id).eq("status", "PENDING").order("created_at", desc=True).limit(1).execute()
+        if response.data:
+            return response.data[0]
+    except Exception as e:
+        logger.error(f"Error fetching pending order for tg {telegram_id}, prod {product_id}: {str(e)}")
+    return None
+
 def update_order_completed(order_id: str, delivery_status: str) -> bool:
     try:
         supabase.table("orders").update({

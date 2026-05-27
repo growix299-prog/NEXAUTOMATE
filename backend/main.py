@@ -120,6 +120,18 @@ async def process_digital_delivery(order_id: str, payment_id: str, amount: float
     if not order:
         # Fallback to check if order_id was sent as standard payment_id
         order = get_order_by_payment(payment_id)
+        
+        # Fallback 2: Check via Razorpay Notes for Payment Links
+        if not order:
+            notes = raw_payload.get("payload", {}).get("payment", {}).get("entity", {}).get("notes", {})
+            tg_id = notes.get("telegram_id")
+            prod_id = notes.get("product_id")
+            if tg_id and prod_id:
+                from backend.services.supabase_service import get_pending_order_by_user_and_product
+                order = get_pending_order_by_user_and_product(int(tg_id), prod_id)
+                if order:
+                    logger.info(f"Order found via notes fallback for telegram_id: {tg_id}")
+
         if not order:
             logger.error(f"Order not found for ID: {order_id} or Payment: {payment_id}")
             return
