@@ -52,10 +52,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     base_keyboard = get_main_menu_keyboard().inline_keyboard
     channel_buttons = [
         [
-            InlineKeyboardButton("🔴 Join OTT Updates 🔴", url="https://t.me/growix_otts")
+            InlineKeyboardButton("🔴 Join OTT Updates 🔴", url="https://t.me/growix_otts", style="danger")
         ],
         [
-            InlineKeyboardButton("🔴 Join Games Updates 🔴", url="https://t.me/growix_games")
+            InlineKeyboardButton("🔴 Join Games Updates 🔴", url="https://t.me/growix_games", style="danger")
         ]
     ]
     
