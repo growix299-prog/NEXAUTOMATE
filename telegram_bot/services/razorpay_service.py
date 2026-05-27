@@ -44,7 +44,7 @@ async def create_payment_link(
             "telegram_id": str(telegram_id),
             "product_id": product_id
         },
-        "callback_url": f"https://t.me/YourBotUsername",
+        "callback_url": f"https://t.me/{os.getenv('TELEGRAM_BOT_USERNAME', 'FlashKeysS_Bot')}",
         "callback_method": "get"
     }
 
