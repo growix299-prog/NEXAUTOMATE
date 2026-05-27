@@ -9,7 +9,7 @@ from backend.services.supabase_service import (
     create_order,
     get_unused_credential
 )
-from telegram_bot.services.razorpay_service import create_payment_link, IS_DEV_MODE
+from telegram_bot.services.razorpay_service import create_payment_link
 
 logger = logging.getLogger(__name__)
 
@@ -252,76 +252,12 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("💳 Pay Securely (Razorpay)", url=short_url)],
             [InlineKeyboardButton("❌ Cancel Order", callback_data="main_menu")]
         ]
-        
-        # Only show test payment button in development mode
-        if IS_DEV_MODE:
-            keyboard.insert(1, [InlineKeyboardButton("🧪 Test Payment (Dev Only)", callback_data=f"simulate:{payment_id}:{int(price*100)}")])
 
         await query.edit_message_text(
             text=checkout_text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
-
-    elif data.startswith("simulate:"):
-        # Simulated payment for local dev testing
-        parts = data.split(":")
-        payment_id = parts[1]
-        amount_paise = int(parts[2])
-        
-        await query.edit_message_text("⏳ <i>Processing test payment...</i>", parse_mode="HTML")
-        
-        import httpx
-        import json
-        import hmac
-        import hashlib
-        try:
-            payload = {
-                "event": "payment.captured",
-                "payload": {
-                    "payment": {
-                        "entity": {
-                            "id": payment_id,
-                            "order_id": payment_id,
-                            "amount": amount_paise
-                        }
-                    }
-                }
-            }
-            
-            payload_bytes = json.dumps(payload, separators=(',', ':')).encode('utf-8')
-            secret = os.getenv("RAZORPAY_WEBHOOK_SECRET")
-            signature = hmac.new(secret.encode('utf-8'), payload_bytes, hashlib.sha256).hexdigest() if secret else "dev_mock_signature"
-
-            async with httpx.AsyncClient() as client:
-                backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-                resp = await client.post(
-                    f"{backend_url}/webhook/razorpay", 
-                    content=payload_bytes, 
-                    headers={
-                        "X-Razorpay-Signature": signature,
-                        "Content-Type": "application/json"
-                    }
-                )
-                
-                if resp.status_code == 200:
-                    await query.edit_message_text(
-                        "✅ <b>Payment Verified!</b>\n\nYour order has been processed. Check this chat for delivery details.",
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]]),
-                        parse_mode="HTML"
-                    )
-                else:
-                    await query.edit_message_text(
-                        f"❌ <b>Payment processing failed.</b>\n\nBackend returned status {resp.status_code}. Make sure the server is running.",
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]]),
-                        parse_mode="HTML"
-                    )
-        except Exception as e:
-            await query.edit_message_text(
-                f"❌ <b>Connection Error</b>\n\nCould not reach the backend server.\n<code>{str(e)}</code>",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]]),
-                parse_mode="HTML"
-            )
 
     elif data == "view_history":
         try:

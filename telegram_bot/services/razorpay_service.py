@@ -8,9 +8,6 @@ logger = logging.getLogger(__name__)
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
-# Check if keys are placeholders or not set
-IS_DEV_MODE = not RAZORPAY_KEY_ID or "placeholder" in RAZORPAY_KEY_ID
-
 async def create_payment_link(
     amount: float, 
     product_name: str, 
@@ -19,22 +16,13 @@ async def create_payment_link(
     first_name: str
 ) -> Dict[str, Any]:
     """
-    Creates a dynamic Razorpay payment link.
-    If in DEV_MODE, returns a mock payment link for testing.
+    Creates a dynamic Razorpay payment link using LIVE keys.
     """
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        logger.error("RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not configured!")
+        return {"success": False, "error": "Payment system not configured. Contact admin."}
+
     amount_in_paise = int(amount * 100)
-    
-    if IS_DEV_MODE:
-        logger.info("Running in Development Mode. Generating Mock Payment Link.")
-        # Return mock payment data that can be used for simulation/testing
-        mock_payment_id = f"pay_mock_{os.urandom(8).hex()}"
-        mock_link = f"https://example.com/payment_mock?id={mock_payment_id}&amount={amount}"
-        return {
-            "success": True,
-            "payment_link_id": mock_payment_id,
-            "short_url": mock_link,
-            "mock": True
-        }
 
     url = "https://api.razorpay.com/v1/payment_links"
     
