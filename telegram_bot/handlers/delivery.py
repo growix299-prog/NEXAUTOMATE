@@ -92,9 +92,9 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
                     
                     keyboard = [
-                        [InlineKeyboardButton("✍️ Write a Review", callback_data="write_review")],
+                        [InlineKeyboardButton("✍️ Write a Review", callback_data="write_review", style="primary")],
                         [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
-                        [InlineKeyboardButton("🛍️ Buy More", callback_data="main_menu")],
+                        [InlineKeyboardButton("🛍️ Buy More", callback_data="main_menu", style="primary")],
                         [InlineKeyboardButton("📜 Order History", callback_data="view_history")]
                     ]
                     await message.reply_text(
@@ -120,7 +120,7 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💡 <b>Need assistance?</b>\n\n"
         "To browse products, buy accounts, or view your purchase history, please use the main menu keyboard below:"
     )
-    keyboard = [[InlineKeyboardButton("📱 Open Main Menu", callback_data="main_menu")]]
+    keyboard = [[InlineKeyboardButton("📱 Open Main Menu", callback_data="main_menu", style="primary")]]
     await message.reply_text(
         text=fallback_text,
         reply_markup=InlineKeyboardMarkup(keyboard),

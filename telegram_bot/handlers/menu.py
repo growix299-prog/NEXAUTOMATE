@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 def get_main_menu_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT"),
-            InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games")
+            InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT", style="primary"),
+            InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games", style="primary")
         ],
         [
             InlineKeyboardButton("📜 Order History", callback_data="view_history"),
@@ -114,7 +114,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             keyboard.append([
                 InlineKeyboardButton(
                     f"{prod['name']} - ₹{float(prod['price']):.2f}", 
-                    callback_data=f"prod_{prod['id']}"
+                    callback_data=f"prod_{prod['id']}",
+                    style="primary"
                 )
             ])
         keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
@@ -169,7 +170,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         if is_in_stock:
             details += f"🛒 <i>Ready to purchase? Click 'Buy Now' to generate a secure Razorpay checkout link:</i>"
             keyboard = [
-                [InlineKeyboardButton("💳 Buy Now (Generate Link)", callback_data=f"buy_{product['id']}")],
+                [InlineKeyboardButton("💳 Buy Now (Generate Link)", callback_data=f"buy_{product['id']}", style="primary")],
                 [InlineKeyboardButton(f"🔙 Back to {product['category']}", callback_data=f"cat_{product['category']}")]
             ]
         else:
@@ -264,8 +265,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
         keyboard = [
-            [InlineKeyboardButton("💳 Pay Securely (Razorpay)", url=short_url)],
-            [InlineKeyboardButton("❌ Cancel Order", callback_data="main_menu")]
+            [InlineKeyboardButton("💳 Pay Securely (Razorpay)", url=short_url, style="primary")],
+            [InlineKeyboardButton("❌ Cancel Order", callback_data="main_menu", style="danger")]
         ]
 
         await query.edit_message_text(

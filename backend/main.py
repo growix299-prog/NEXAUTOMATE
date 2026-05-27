@@ -306,9 +306,9 @@ async def admin_send_ott_credentials(
         
         keyboard = {
             "inline_keyboard": [
-                [{"text": "✍️ Write a Review", "callback_data": "write_review"}],
+                [{"text": "✍️ Write a Review", "callback_data": "write_review", "style": "primary"}],
                 [{"text": "🏠 Main Menu", "callback_data": "main_menu"}],
-                [{"text": "🛍️ Buy More", "callback_data": "main_menu"}],
+                [{"text": "🛍️ Buy More", "callback_data": "main_menu", "style": "primary"}],
                 [{"text": "📜 Order History", "callback_data": "view_history"}]
             ]
         }
