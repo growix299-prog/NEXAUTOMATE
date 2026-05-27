@@ -136,11 +136,11 @@ async def send_game_credential_email(to_email: str, product_name: str, order_id:
     payload = {
         "from": "support@nexatutomate.shop",
         "to": to_email,
-        "subject": f"🎮 Your {product_name} Login Credentials",
+        "subject": f"✨ Your {product_name} Login Credentials",
         "html": f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #0d0e12; color: #fff;">
             <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #a855f7; font-weight: bold;">🎮 GAME ACCOUNT READY!</h1>
+                <h1 style="color: #3b82f6; font-weight: bold;">🎉 ACCOUNT READY!</h1>
                 <p style="color: #9ca3af; font-size: 14px;">Order ID: {order_id}</p>
             </div>
             <div style="background-color: #1e293b; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
@@ -149,7 +149,7 @@ async def send_game_credential_email(to_email: str, product_name: str, order_id:
                 <p style="margin: 8px 0;"><strong>🔒 Password:</strong> <code style="background: #334155; padding: 2px 6px; border-radius: 4px;">{password}</code></p>
             </div>
             <p style="font-size: 15px; line-height: 1.5; color: #d1d5db;">
-                Your <strong>{product_name}</strong> game account is ready! Please log in and change your password immediately to secure your account. Enjoy your game! 🕹️
+                Your <strong>{product_name}</strong> account is ready! Please log in and change your password immediately to secure your account. Enjoy your premium experience! ✨
             </p>
             <hr style="border-color: #334155; margin: 20px 0;">
             <p style="font-size: 12px; color: #6b7280; text-align: center;">
