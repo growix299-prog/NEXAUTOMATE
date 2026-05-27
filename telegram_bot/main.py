@@ -3,6 +3,7 @@ import sys
 import logging
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from telegram import BotCommand
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 # Setup path so we can import backend packages
@@ -18,7 +19,7 @@ if os.path.exists(env_path):
                 k, v = line.split("=", 1)
                 os.environ[k.strip()] = v.strip()
 
-from telegram_bot.handlers.menu import start_command, handle_callback_query
+from telegram_bot.handlers.menu import start_command, handle_callback_query, history_command, support_command
 from telegram_bot.handlers.delivery import handle_user_text
 
 # Configure logging
@@ -46,6 +47,15 @@ def start_health_server():
     logger.info(f"Health check server running on port {port}")
     server.serve_forever()
 
+async def setup_commands(application: Application):
+    """Set up the bot command menu."""
+    commands = [
+        BotCommand("start", "Open Main Menu"),
+        BotCommand("history", "View Order History"),
+        BotCommand("support", "Contact Support")
+    ]
+    await application.bot.set_my_commands(commands)
+
 def main():
     """Starts the Telegram Bot."""
     if not BOT_TOKEN:
@@ -59,10 +69,12 @@ def main():
     logger.info("Initializing Telegram Digital Delivery Bot...")
     
     # Initialize python-telegram-bot application
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = Application.builder().token(BOT_TOKEN).post_init(setup_commands).build()
 
     # Register handlers
     application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("history", history_command))
+    application.add_handler(CommandHandler("support", support_command))
     application.add_handler(CallbackQueryHandler(handle_callback_query))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_text))
 

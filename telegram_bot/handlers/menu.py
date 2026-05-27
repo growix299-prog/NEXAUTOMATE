@@ -65,6 +65,62 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the /history command."""
+    user = update.effective_user
+    supabase = get_db()
+    
+    try:
+        response = supabase.table("orders").select("*, products(*)").eq("telegram_id", user.id).order("created_at", desc=True).execute()
+        orders = response.data
+    except Exception as e:
+        logger.error(f"Error fetching order history: {str(e)}")
+        orders = []
+
+    if not orders:
+        await update.message.reply_text(
+            text="📜 <b>Order History</b>\n\nYou haven't made any purchases yet. Start shopping now!",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
+            parse_mode="HTML"
+        )
+        return
+
+    history_text = "📜 <b>YOUR RECENT ORDERS:</b>\n\n"
+    for idx, order in enumerate(orders[:10], 1): # Show latest 10
+        prod = order.get("products") or {}
+        prod_name = prod.get("name", "Unknown Product")
+        
+        if order.get("status") == "PENDING":
+            status = "Pending Payment / Setup"
+        else:
+            status = "Delivered" if order.get("delivery_status") == "DELIVERED" else "Processing"
+            
+        history_text += f"{idx}. <b>{prod_name}</b>\n   💰 ₹{float(order.get('amount', 0)):.2f} | 📅 {order.get('created_at', '')[:10]}\n   🚚 Status: {status}\n\n"
+        
+    await update.message.reply_text(
+        text=history_text,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
+        parse_mode="HTML"
+    )
+
+async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the /support command."""
+    support_text = (
+        f"ℹ️ <b>CUSTOMER SUPPORT</b> ℹ️\n\n"
+        f"Have issues with a digital product or payment? We are here to help!\n\n"
+        f"👤 <b>Admin Contact:</b> @ur_aurexia222\n\n"
+        f"<i>Please share your Order Reference ID while contacting support for quick resolution.</i>"
+    )
+    keyboard = [
+        [InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/ur_aurexia222")],
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+    ]
+    await update.message.reply_text(
+        text=support_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
+    )
+
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes all inline button clicks."""
     query = update.callback_query
