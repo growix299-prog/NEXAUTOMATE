@@ -83,11 +83,14 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         except Exception as e:
             logger.error(f"Error fetching products: {str(e)}")
             products = []
+            error_msg = str(e)
+        else:
+            error_msg = "No products found in DB."
 
         if not products:
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
             await query.edit_message_text(
-                text=f"🗂️ <b>Category: {category}</b>\n\nCurrently, there are no active products in this category. Please check back later!",
+                text=f"🗂️ <b>Category: {category}</b>\n\nCurrently, there are no active products in this category. Please check back later!\n\n<i>[SYSTEM DEBUG]: {error_msg}</i>",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
