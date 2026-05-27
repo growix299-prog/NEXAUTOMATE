@@ -343,8 +343,7 @@ export default function ProductsPage() {
                   onChange={(e) => setDeliveryType(e.target.value)}
                   className="w-full px-4 py-2.5 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text focus:outline-none focus:border-yellow-400"
                 >
-                  <option value="AUTO">AUTO (Auto-deliver game credentials)</option>
-                  <option value="MANUAL">MANUAL (Admin processes manually)</option>
+                  <option value="AUTO">AUTO (Auto-deliver credentials)</option>
                 </select>
               </div>
 
