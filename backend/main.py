@@ -158,7 +158,7 @@ async def process_digital_delivery(order_id: str, payment_id: str, amount: float
     except Exception:
         pass
 
-    if category == "Games":
+    if category in ("Games", "OTT"):
         # Ask for email before Automated Credential Dispatch
         update_order_completed(order["id"], "AWAITING_EMAIL_GAMES")
         msg = (
@@ -167,37 +167,12 @@ async def process_digital_delivery(order_id: str, payment_id: str, amount: float
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"📧 <b>NEXT STEP — SEND YOUR EMAIL</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"To receive your game credentials securely, "
+            f"To receive your {category.lower()} credentials securely, "
             f"please <b>type and send your email address</b> in this chat right now.\n\n"
             f"Your login ID and password will be delivered here instantly and also sent to your email! 🚀"
         )
         await send_telegram_message(telegram_id, msg)
-        logger.info(f"Games order set to AWAITING_EMAIL_GAMES, awaiting email from telegram_id {telegram_id}")
-            
-    elif category == "OTT":
-        # OTT Manual Activation Flow — Always ask for email
-        # Admin will activate from dashboard, then credentials are emailed to user
-        update_order_completed(order["id"], "MANUAL_PROCESSING")
-        msg = (
-            f"🎉 <b>PAYMENT SUCCESSFUL!</b> 🎉\n\n"
-            f"Thank you for purchasing <b>{product_name}</b>!\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📧 <b>NEXT STEP — SEND YOUR EMAIL</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"To activate your <b>{product_name}</b> subscription, "
-            f"please <b>type and send your email address</b> in this chat right now.\n\n"
-            f"This email will be used to set up your premium access.\n\n"
-            f"⏱️ <i>Your subscription will be activated within 1-2 hours after email submission.</i>"
-        )
-        await send_telegram_message(telegram_id, msg)
-        
-        # Notify Admin about new OTT order
-        if ADMIN_TELEGRAM_ID:
-            await send_telegram_message(
-                int(ADMIN_TELEGRAM_ID),
-                f"📦 <b>NEW OTT ORDER</b> 📦\n\nOrder <code>{order['id']}</code> for <b>{product_name}</b>.\nWaiting for customer to submit their email. You will activate from the dashboard once email is received."
-            )
-        logger.info(f"OTT order set to MANUAL_PROCESSING, awaiting email from telegram_id {telegram_id}")
+        logger.info(f"{category} order set to AWAITING_EMAIL_GAMES, awaiting email from telegram_id {telegram_id}")
 
     # 4. Notify Admin
     await notify_admin_on_sale(product_name, amount, category, order["id"])

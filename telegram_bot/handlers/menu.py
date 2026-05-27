@@ -44,12 +44,23 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Hello {user.first_name}! We provide 100% automated instant delivery of gaming credentials and premium OTT services.\n\n"
         f"📦 <b>Instant Delivery:</b> Game accounts (Steam, Valorant, GTA V, etc.)\n"
         f"⚙️ <b>Fast Setup:</b> OTT subscriptions (Netflix, Spotify, YouTube Premium, etc.)\n\n"
+        f"📢 <b>Join our channels for updates & offers:</b>\n"
         f"👇 <i>Select a category below to browse our inventory:</i>"
     )
 
+    base_keyboard = get_main_menu_keyboard().inline_keyboard
+    channel_buttons = [
+        [
+            InlineKeyboardButton("🔴 Join OTT Updates 🔴", url="https://t.me/growix_otts")
+        ],
+        [
+            InlineKeyboardButton("🔴 Join Games Updates 🔴", url="https://t.me/growix_games")
+        ]
+    ]
+    
     await update.message.reply_text(
         text=banner,
-        reply_markup=get_main_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup(channel_buttons + base_keyboard),
         parse_mode="HTML"
     )
 
@@ -295,11 +306,11 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         support_text = (
             f"ℹ️ <b>CUSTOMER SUPPORT</b> ℹ️\n\n"
             f"Have issues with a digital product or payment? We are here to help!\n\n"
-            f"👤 <b>Admin Contact:</b> @Ramaon_dino\n\n"
+            f"👤 <b>Admin Contact:</b> @ur_aurexia222\n\n"
             f"<i>Please share your Order Reference ID while contacting support for quick resolution.</i>"
         )
         keyboard = [
-            [InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/Ramaon_dino")],
+            [InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/ur_aurexia222")],
             [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ]
         await query.edit_message_text(

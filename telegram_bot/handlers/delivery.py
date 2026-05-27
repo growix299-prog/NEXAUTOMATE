@@ -36,21 +36,15 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error checking pending orders: {str(e)}")
         pending_orders = []
 
+    active_order = None
     if pending_orders:
-        # Find the latest order that does NOT have an OTT request yet (for OTT) or is AWAITING_EMAIL_GAMES (for Games)
-        active_order = None
         for order in pending_orders:
             if order["delivery_status"] == "AWAITING_EMAIL_GAMES":
                 active_order = order
                 break
-            # For OTT, check if an OTT request already exists
-            ott_check = supabase.table("ott_requests").select("id").eq("order_id", order["id"]).execute()
-            if not ott_check.data:
-                active_order = order
-                break
 
-        if active_order:
-            # The user is prompted to submit their email
+    if active_order:
+        # The user is prompted to submit their email
             product = active_order["products"]
             
             # Simple regex validation for email
@@ -66,8 +60,8 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             email = text.lower()
             
             if active_order["delivery_status"] == "AWAITING_EMAIL_GAMES":
-                # Games Flow: Fetch credentials immediately
-                await message.reply_text("⏳ <i>Fetching your game credentials, please wait...</i>", parse_mode="HTML")
+                # Fetch credentials immediately
+                await message.reply_text(f"⏳ <i>Fetching your {product['category'].lower()} credentials, please wait...</i>", parse_mode="HTML")
                 
                 credential = get_unused_credential(product["id"])
                 if credential:
@@ -77,17 +71,17 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Send credentials via Telegram
                     msg = (
                         f"🎉 <b>PAYMENT SUCCESSFUL!</b> 🎉\n\n"
-                        f"🎮 Your login ID and password for <b>{product['name']}</b> are ready! 🚀\n\n"
+                        f"✨ Your login ID and password for <b>{product['name']}</b> are ready! 🚀\n\n"
                         f"🔑 <b>Login Details:</b>\n"
                         f"👤 <b>Username/Email:</b> <code>{credential['email_or_username']}</code>\n"
                         f"🔒 <b>Password:</b> <code>{credential['password']}</code>\n\n"
                         f"📧 <i>We have also sent your <b>{product['name']}</b> login credentials to your email <b>{email}</b>. Please check your email as well!</i>\n\n"
-                        f"⚠️ <i>Please change the credentials after logging in to secure your account. Enjoy your game! 🕹️</i>\n\n"
+                        f"⚠️ <i>Please change the credentials after logging in to secure your account. Enjoy!</i>\n\n"
                         f"🙏 <b>Thank you {user.first_name} for shopping with us!</b>\n"
                         f"We'd love to hear your feedback. Please write a review for us!"
                     )
                     
-                    # Send game credentials via email
+                    # Send credentials via email
                     await send_game_credential_email(
                         to_email=email,
                         product_name=product["name"],
@@ -107,7 +101,7 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         reply_markup=InlineKeyboardMarkup(keyboard),
                         parse_mode="HTML"
                     )
-                    logger.info(f"Game credential delivered to telegram_id {user.id} and email {email}")
+                    logger.info(f"Credential delivered to telegram_id {user.id} and email {email}")
                 else:
                     # Out of stock
                     update_order_completed(active_order["id"], "MANUAL_PROCESSING")
@@ -119,43 +113,6 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await message.reply_text(msg, parse_mode="HTML")
                     logger.warning(f"No credentials available for product: {product['name']}")
                 return
-
-            # OTT Flow: Create request and wait for admin
-            create_ott_request(active_order["id"], email)
-
-            # Send confirmation processing message
-            await message.reply_text("⏳ <i>Registering your email, please wait...</i>", parse_mode="HTML")
-            
-            # Call async Resend Service (silently - no status shown to user)
-            email_sent = await send_delivery_email(
-                to_email=email,
-                product_name=product["name"],
-                order_id=active_order["id"]
-            )
-
-            success_msg = (
-                f"✅ <b>EMAIL REGISTERED SUCCESSFULLY!</b>\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📧 <b>Email:</b> <code>{email}</code>\n"
-                f"📦 <b>Product:</b> {product['name']}\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"Our team has received your request and is setting up your <b>{product['name']}</b> premium access.\n\n"
-                f"⏱️ <b>Estimated Activation:</b> Within 1-2 hours\n\n"
-                f"📩 You will receive a confirmation on this email once your subscription is active. "
-                f"Thank you for choosing us!"
-            )
-            
-            keyboard = [[InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]]
-            await message.reply_text(
-                text=success_msg,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode="HTML"
-            )
-            
-            # Update delivery status to MANUAL_PROCESSING (confirmed)
-            # Notify Admin in Console
-            logger.info(f"OTT manual email request logged for order {active_order['id']} - Email: {email}")
-            return
 
     # Default fallback: If no OTT registration is pending, show main menu keyboard
     fallback_text = (
