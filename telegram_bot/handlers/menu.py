@@ -60,7 +60,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(
         text=banner,
-        reply_markup=InlineKeyboardMarkup(channel_buttons + base_keyboard),
+        reply_markup=InlineKeyboardMarkup(channel_buttons + list(base_keyboard)),
         parse_mode="HTML"
     )
 
@@ -275,8 +275,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
     elif data == "view_history":
         try:
-            # Query user orders
-            response = supabase.table("orders").select("*, products(*)").eq("telegram_id", user.id).eq("status", "COMPLETED").order("created_at", desc=True).execute()
+            # Query user orders (all statuses)
+            response = supabase.table("orders").select("*, products(*)").eq("telegram_id", user.id).order("created_at", desc=True).execute()
             orders = response.data
         except Exception as e:
             logger.error(f"Error fetching order history: {str(e)}")
@@ -290,11 +290,17 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return
 
-        history_text = "📜 <b>YOUR COMPLETED ORDERS:</b>\n\n"
+        history_text = "📜 <b>YOUR RECENT ORDERS:</b>\n\n"
         for idx, order in enumerate(orders[:10], 1): # Show latest 10
-            prod = order["products"]
-            status = "Delivered" if order["delivery_status"] == "DELIVERED" else "Pending Setup"
-            history_text += f"{idx}. <b>{prod['name']}</b>\n   💰 ₹{float(order['amount']):.2f} | 📅 {order['created_at'][:10]}\n   🚚 Status: {status}\n\n"
+            prod = order.get("products") or {}
+            prod_name = prod.get("name", "Unknown Product")
+            
+            if order.get("status") == "PENDING":
+                status = "Pending Payment / Setup"
+            else:
+                status = "Delivered" if order.get("delivery_status") == "DELIVERED" else "Processing"
+                
+            history_text += f"{idx}. <b>{prod_name}</b>\n   💰 ₹{float(order.get('amount', 0)):.2f} | 📅 {order.get('created_at', '')[:10]}\n   🚚 Status: {status}\n\n"
             
         await query.edit_message_text(
             text=history_text,
