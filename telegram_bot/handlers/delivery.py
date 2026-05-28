@@ -143,14 +143,60 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     logger.warning(f"No credentials available for product: {product['name']}")
                 return
 
+    # Handle ReplyKeyboardMarkup selections
+    if text == "📺 OTT Subscriptions":
+        # Simulate category click
+        from telegram_bot.handlers.menu import get_product_emoji
+        response = supabase.table("products").select("*").eq("category", "OTT").eq("active", True).execute()
+        products = response.data or []
+        keyboard = []
+        for prod in products:
+            emoji = get_product_emoji(prod['name'])
+            keyboard.append([InlineKeyboardButton(f"{emoji} {prod['name']} | ₹{float(prod['price']):.2f}", callback_data=f"prod_{prod['id']}")])
+        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        await message.reply_text(text="🛒 <b>Available Products:</b>\n\nChoose a product below:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+        
+    elif text == "🎮 Game Accounts":
+        from telegram_bot.handlers.menu import get_product_emoji
+        response = supabase.table("products").select("*").eq("category", "Games").eq("active", True).execute()
+        products = response.data or []
+        keyboard = []
+        for prod in products:
+            emoji = get_product_emoji(prod['name'])
+            keyboard.append([InlineKeyboardButton(f"{emoji} {prod['name']} | ₹{float(prod['price']):.2f}", callback_data=f"prod_{prod['id']}")])
+        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        await message.reply_text(text="🛒 <b>Available Products:</b>\n\nChoose a product below:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+        
+    elif text == "📜 Purchase History":
+        # Simulate history click
+        response = supabase.table("orders").select("*, products(*)").eq("telegram_id", user.id).order("created_at", desc=True).execute()
+        orders = response.data or []
+        if not orders:
+            await message.reply_text("<blockquote>📜 <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]), parse_mode="HTML")
+            return
+        history_text = "<blockquote>📜 <b>YOUR RECENT ORDERS:</b>\n\n"
+        for idx, order in enumerate(orders[:10], 1):
+            prod = order.get("products") or {}
+            history_text += f"{idx}. <b>{prod.get('name', 'Product')}</b>\n   💰 ₹{float(order.get('amount', 0)):.2f} | 📅 {order.get('created_at', '')[:10]}\n   🚚 Status: {order.get('status')}\n\n"
+        history_text += "</blockquote>"
+        await message.reply_text(text=history_text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]), parse_mode="HTML")
+        return
+        
+    elif text == "ℹ️ Support":
+        support_text = "<blockquote>ℹ️ <b>PREMIUM CUSTOMER SUPPORT</b> ℹ️\n\n👤 <b>Admin Contact:</b> @ur_aurexia222\n\n<i>Please provide your Order Reference ID when reaching out for the fastest resolution.</i></blockquote>"
+        await message.reply_text(text=support_text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/ur_aurexia222")]]), parse_mode="HTML")
+        return
+
     # Default fallback: If no OTT registration is pending, show main menu keyboard
     fallback_text = (
         "💡 <b>Need assistance?</b>\n\n"
-        "To browse products, buy accounts, or view your purchase history, please use the main menu keyboard below:"
+        "Please select an option from the menu below, or use the buttons:"
     )
-    keyboard = [[InlineKeyboardButton("📱 Open Main Menu", callback_data="main_menu", style="primary")]]
+    from telegram_bot.handlers.menu import get_main_menu_keyboard
     await message.reply_text(
         text=fallback_text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=get_main_menu_keyboard(),
         parse_mode="HTML"
     )

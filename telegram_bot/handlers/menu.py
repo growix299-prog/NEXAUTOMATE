@@ -1,7 +1,7 @@
 import os
 import logging
 import html
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from backend.services.supabase_service import (
@@ -15,6 +15,12 @@ from telegram_bot.services.razorpay_service import create_payment_link
 logger = logging.getLogger(__name__)
 
 # Main Menu Layout
+def get_reply_keyboard():
+    return ReplyKeyboardMarkup([
+        ["📺 OTT Subscriptions", "🎮 Game Accounts"],
+        ["📜 Purchase History", "ℹ️ Support"]
+    ], resize_keyboard=True)
+
 def get_main_menu_keyboard():
     keyboard = [
         [
@@ -76,15 +82,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     banner = (
-        f"<blockquote>"
-        f"⚡ <b>WELCOME TO ELITE DIGITAL STORE</b> ⚡\n\n"
-        f"Hello <b>{html.escape(user.first_name)}</b>! We provide 100% automated instant delivery of premium digital services.\n\n"
-        f"📦 <b>Instant Delivery:</b> Game accounts (Steam, Valorant, GTA V, etc.)\n"
-        f"⚙️ <b>Fast Setup:</b> OTT subscriptions (Netflix, Spotify, YouTube Premium, etc.)\n\n"
-        f"👇 <i>Select a category below to browse our exclusive inventory:</i>"
-        f"</blockquote>"
+        f"🚀 <b>System Dashboard Activated</b>\n\n"
+        f"📌 <b>Quick guide:</b>\n"
+        f"1. Tap 'OTT' or 'Games' to browse products.\n"
+        f"2. Choose the product you want.\n"
+        f"3. Complete the payment.\n"
+        f"4. Your product will be delivered instantly.\n\n"
+        f"📌 <i>Please choose a menu below:</i>"
     )
 
+    # Send the bottom reply keyboard first
+    await update.message.reply_text(
+        text="Loading interface...",
+        reply_markup=get_reply_keyboard()
+    )
+    # Then send the main menu with inline buttons
     await update.message.reply_text(
         text=banner,
         reply_markup=get_main_menu_keyboard(),
@@ -151,6 +163,21 @@ async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+
+def get_product_emoji(name):
+    n = name.lower()
+    if 'netflix' in n: return '🔴'
+    if 'prime' in n: return '🔵'
+    if 'canva' in n: return '🖌️'
+    if 'crunchyroll' in n: return '🟠'
+    if 'spotify' in n: return '🟢'
+    if 'duolingo' in n: return '🟢'
+    if 'gta' in n: return '🚗'
+    if 'valorant' in n: return '🎯'
+    if 'nord' in n or 'vpn' in n: return '🛡️'
+    if 'tradingview' in n: return '📈'
+    return '🔹'
+
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes all inline button clicks."""
     query = update.callback_query
@@ -164,11 +191,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         is_member = await check_channel_membership(user.id, context)
         if is_member:
             banner = (
-                f"<blockquote>"
-                f"⚡ <b>ELITE DIGITAL STORE - MAIN MENU</b> ⚡\n\n"
-                f"Verification successful! Thank you for joining our community.\n\n"
-                f"👇 <i>Browse our premium inventory below:</i>"
-                f"</blockquote>"
+                f"🚀 <b>System Dashboard Activated</b>\n\n"
+                f"📌 <b>Quick guide:</b>\n"
+                f"1. Tap 'OTT' or 'Games' to browse products.\n"
+                f"2. Choose the product you want.\n"
+                f"3. Complete the payment.\n"
+                f"4. Your product will be delivered instantly.\n\n"
+                f"📌 <i>Please choose a menu below:</i>"
             )
             await query.edit_message_text(
                 text=banner,
@@ -218,10 +247,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             return
 
         banner = (
-            f"<blockquote>"
-            f"⚡ <b>ELITE DIGITAL STORE - MAIN MENU</b> ⚡\n\n"
-            f"Browse our premium inventory using the buttons below:"
-            f"</blockquote>"
+            f"🚀 <b>System Dashboard Activated</b>\n\n"
+            f"📌 <b>Quick guide:</b>\n"
+            f"1. Tap 'OTT' or 'Games' to browse products.\n"
+            f"2. Choose the product you want.\n"
+            f"3. Complete the payment.\n"
+            f"4. Your product will be delivered instantly.\n\n"
+            f"📌 <i>Please choose a menu below:</i>"
         )
         await query.edit_message_text(
             text=banner,
@@ -267,7 +299,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         if not products:
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
             await query.edit_message_text(
-                text=f"<blockquote>🗂️ <b>Category: {category}</b>\n\nCurrently, there are no active products in this category. Please check back later!</blockquote>",
+                text=f"🛒 <b>Available {category} Products:</b>\n\nCurrently out of stock. Please check back later!",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -275,16 +307,17 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         keyboard = []
         for prod in products:
+            emoji = get_product_emoji(prod['name'])
             keyboard.append([
                 InlineKeyboardButton(
-                    f"{prod['name']} - ₹{float(prod['price']):.2f}", 
+                    f"{emoji} {prod['name']} | ₹{float(prod['price']):.2f}", 
                     callback_data=f"prod_{prod['id']}"
                 )
             ])
         keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
 
         await query.edit_message_text(
-            text=f"<blockquote>🗂️ <b>BROWSE {category.upper()} PRODUCTS</b>\n\nChoose a premium product below to view details and proceed to checkout:</blockquote>",
+            text=f"🛒 <b>Available Products:</b>\n\nChoose a product below:",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
