@@ -434,7 +434,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         keyboard = [
             [InlineKeyboardButton("👛 Pay with Wallet (₹0.00)", callback_data="alert_wallet")],
             [InlineKeyboardButton("🟨 Binance Pay / Crypto", callback_data="alert_crypto")],
-            [InlineKeyboardButton("🇮🇳 Pay with UPI (INR)", callback_data=f"upiterms_{product['id']}")],
+            [InlineKeyboardButton("💳 Pay with Razorpay (Auto)", callback_data=f"rzpterms_{product['id']}")],
             [InlineKeyboardButton("❌ Cancel", callback_data="main_menu")]
         ]
 
@@ -445,30 +445,30 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
     elif data == "alert_wallet":
-        await query.answer("❌ Wallet balance is ₹0.00! Please use UPI.", show_alert=True)
+        await query.answer("❌ Wallet balance is ₹0.00! Please use Razorpay.", show_alert=True)
         return
 
     elif data == "alert_crypto":
-        await query.answer("⏳ Binance Pay is currently under maintenance. Please use UPI.", show_alert=True)
+        await query.answer("⏳ Binance Pay is currently under maintenance. Please use Razorpay.", show_alert=True)
         return
 
-    elif data.startswith("upiterms_"):
+    elif data.startswith("rzpterms_"):
         product_id = data.split("_")[1]
         terms_text = (
-            f"⚠️ <b>UPI TERMS & CONDITIONS</b> ⚠️\n\n"
-            f"1. We use a secure automated UPI payment gateway.\n"
+            f"⚠️ <b>RAZORPAY TERMS & CONDITIONS</b> ⚠️\n\n"
+            f"1. We use Razorpay for secure automated payments (Cards/UPI/Netbanking).\n"
             f"2. You MUST complete the payment on the next screen.\n"
             f"3. Do NOT modify the pre-filled amount in your UPI app.\n"
             f"4. No refunds will be provided for incorrect payments or useless reasons.\n\n"
             f"Do you agree to these terms?"
         )
         keyboard = [
-            [InlineKeyboardButton("✅ Agree", callback_data=f"upiagree_{product_id}")],
+            [InlineKeyboardButton("✅ Agree", callback_data=f"rzpagree_{product_id}")],
             [InlineKeyboardButton("❌ Decline", callback_data="main_menu")]
         ]
         await query.edit_message_text(text=terms_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
-    elif data.startswith("upiagree_"):
+    elif data.startswith("rzpagree_"):
         product_id = data.split("_")[1]
         await query.edit_message_text("<blockquote>⏳ <i>Securing your order & generating payment gateway...</i></blockquote>", parse_mode="HTML")
 
@@ -519,7 +519,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
         keyboard = [
-            [InlineKeyboardButton("🔗 Pay Now (Secure UPI)", url=short_url)],
+            [InlineKeyboardButton("🔗 Pay Securely via Razorpay", url=short_url)],
             [InlineKeyboardButton("❌ Cancel Order", callback_data="main_menu")]
         ]
 
