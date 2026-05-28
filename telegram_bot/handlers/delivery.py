@@ -144,21 +144,29 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
     # Handle ReplyKeyboardMarkup selections
-    if text == "🛍️ Products":
-        keyboard = [
-            [InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT")],
-            [InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games")],
-            [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
-        ]
-        await message.reply_text(
-            text="<blockquote>🛒 <b>CATEGORIES</b>\n\nPlease select a product category below:</blockquote>",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="HTML"
-        )
+    if text == "📺 OTT Subscriptions":
+        # Simulate category click
+        from telegram_bot.handlers.menu import get_product_emoji
+        response = supabase.table("products").select("*").eq("category", "OTT").eq("active", True).execute()
+        products = response.data or []
+        keyboard = []
+        for prod in products:
+            emoji = get_product_emoji(prod['name'])
+            keyboard.append([InlineKeyboardButton(f"{emoji} {prod['name']} | ₹{float(prod['price']):.2f}", callback_data=f"prod_{prod['id']}")])
+        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        await message.reply_text(text="🛒 <b>Available Products:</b>\n\nChoose a product below:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
         return
-
-    elif text in ["🎁 Redeem Code", "👛 Wallet", "👤 My Profile"]:
-        await message.reply_text("⏳ This feature is coming soon!")
+        
+    elif text == "🎮 Game Accounts":
+        from telegram_bot.handlers.menu import get_product_emoji
+        response = supabase.table("products").select("*").eq("category", "Games").eq("active", True).execute()
+        products = response.data or []
+        keyboard = []
+        for prod in products:
+            emoji = get_product_emoji(prod['name'])
+            keyboard.append([InlineKeyboardButton(f"{emoji} {prod['name']} | ₹{float(prod['price']):.2f}", callback_data=f"prod_{prod['id']}")])
+        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        await message.reply_text(text="🛒 <b>Available Products:</b>\n\nChoose a product below:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
         return
         
     elif text == "📝 Purchase History":

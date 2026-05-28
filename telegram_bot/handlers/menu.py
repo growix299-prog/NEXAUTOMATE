@@ -17,18 +17,19 @@ logger = logging.getLogger(__name__)
 # Main Menu Layout
 def get_reply_keyboard():
     return ReplyKeyboardMarkup([
-        ["🛍️ Products", "📝 Purchase History"],
-        ["💬 Support"]
+        ["📺 OTT Subscriptions", "🎮 Game Accounts"],
+        ["📝 Purchase History", "💬 Support"]
     ], resize_keyboard=True)
 
 def get_main_menu_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton("🛍️ Products", callback_data="view_products")
+            InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT"),
+            InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games")
         ],
         [
             InlineKeyboardButton("📝 Purchase History", callback_data="view_history"),
-            InlineKeyboardButton("↗️ Support", callback_data="view_support")
+            InlineKeyboardButton("💬 Support", callback_data="view_support")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
