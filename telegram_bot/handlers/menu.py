@@ -63,11 +63,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not is_member:
         banner = (
-            f"<blockquote>"
-            f"⚡ <b>WELCOME TO ELITE DIGITAL STORE</b> ⚡\n\n"
+            f"🚀 <b>System Dashboard Activated</b>\n\n"
             f"Hello <b>{html.escape(user.first_name)}</b>! To unlock our automated instant delivery of gaming credentials and premium OTT services, you must join our official channels.\n\n"
-            f"👇 <i>Join both channels below to continue:</i>"
-            f"</blockquote>"
+            f"📌 <i>Join both channels below to continue:</i>"
         )
         keyboard = [
             [InlineKeyboardButton("🔴 Join OTT Channel 🔴", url="https://t.me/growix_otts", **{"style": "danger"} if True else {})],
