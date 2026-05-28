@@ -1,6 +1,7 @@
 import re
 import logging
 import html
+from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
@@ -69,17 +70,44 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     mark_credential_used(credential["id"])
                     update_order_completed(active_order["id"], "DELIVERED")
                     
+                    subscription_text = ""
+                    if product.get('category') == 'OTT' and credential.get('subscription_months'):
+                        try:
+                            # created_at might have 'Z' or offset
+                            created_str = credential['created_at'].replace('Z', '+00:00')
+                            # Handle postgres timestamp
+                            if '.' in created_str:
+                                created_str = created_str.split('+')[0] + '+00:00'
+                            created = datetime.fromisoformat(created_str)
+                            now = datetime.now(timezone.utc)
+                            months = int(credential['subscription_months'])
+                            
+                            total_valid_days = months * 30
+                            days_passed = (now - created).days
+                            days_left = total_valid_days - days_passed
+                            
+                            if days_left > 0:
+                                subscription_text = f"⏳ <b>Time Remaining:</b> {days_left} Days\n\n"
+                            else:
+                                subscription_text = f"⏳ <b>Time Remaining:</b> EXPIRED\n\n"
+                        except Exception as e:
+                            logger.error(f"Date parsing error: {e}")
+                            subscription_text = ""
+                            
                     # Send credentials via Telegram
                     msg = (
+                        f"<blockquote>"
                         f"🎉 <b>PAYMENT SUCCESSFUL!</b> 🎉\n\n"
                         f"✨ Your login ID and password for <b>{product['name']}</b> are ready! 🚀\n\n"
-                        f"🔑 <b>Login Details:</b>\n"
+                        f"🔑 <b>LOGIN DETAILS:</b>\n"
                         f"👤 <b>Username/Email:</b> <code>{credential['email_or_username']}</code>\n"
                         f"🔒 <b>Password:</b> <code>{credential['password']}</code>\n\n"
-                        f"📧 <i>We have also sent your <b>{product['name']}</b> login credentials to your email <b>{email}</b>. Please check your email as well!</i>\n\n"
+                        f"{subscription_text}"
+                        f"📧 <i>We have also sent your login credentials to your email <b>{email}</b>.</i>\n\n"
                         f"⚠️ <i>Please change the credentials after logging in to secure your account. Enjoy!</i>\n\n"
                         f"🙏 <b>Thank you {html.escape(user.first_name)} for shopping with us!</b>\n"
                         f"We'd love to hear your feedback. Please write a review for us!"
+                        f"</blockquote>"
                     )
                     
                     # Send credentials via email

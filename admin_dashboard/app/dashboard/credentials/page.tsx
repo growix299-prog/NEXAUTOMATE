@@ -14,6 +14,12 @@ export default function CredentialsPage() {
   const [productId, setProductId] = useState('')
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [subscriptionMonths, setSubscriptionMonths] = useState('1')
+  const [currentTime, setCurrentTime] = useState(new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
   
   // Bulk form
   const [bulkText, setBulkText] = useState('')
@@ -28,6 +34,7 @@ export default function CredentialsPage() {
   const [editPassword, setEditPassword] = useState('')
   const [editStatus, setEditStatus] = useState('UNUSED')
   const [editProductId, setEditProductId] = useState('')
+  const [editSubscriptionMonths, setEditSubscriptionMonths] = useState('1')
   const [editError, setEditError] = useState<string | null>(null)
 
   // Undo Delete States for Credentials
@@ -77,6 +84,7 @@ export default function CredentialsPage() {
     setEditPassword(cred.password)
     setEditStatus(cred.status)
     setEditProductId(cred.product_id)
+    setEditSubscriptionMonths(cred.subscription_months?.toString() || '1')
     setEditError(null)
     setIsEditModalOpen(true)
   }
@@ -97,7 +105,8 @@ export default function CredentialsPage() {
           email_or_username: editEmail.trim(),
           password: editPassword.trim(),
           status: editStatus,
-          product_id: editProductId
+          product_id: editProductId,
+          subscription_months: parseInt(editSubscriptionMonths) || 1
         })
         .eq('id', editingCred.id)
 
@@ -158,6 +167,8 @@ export default function CredentialsPage() {
   }
 
   const handleSingleSubmit = async (e: React.FormEvent) => {
+    const selectedProduct = products.find(p => p.id === productId);
+    const isOtt = selectedProduct?.category === 'OTT';
     e.preventDefault()
     setMessage(null)
 
@@ -173,7 +184,8 @@ export default function CredentialsPage() {
           product_id: productId,
           email_or_username: emailOrUsername.trim(),
           password: password.trim(),
-          status: 'UNUSED'
+          status: 'UNUSED',
+          subscription_months: isOtt ? parseInt(subscriptionMonths) || 1 : 0
         }])
 
       if (error) throw error
@@ -189,6 +201,8 @@ export default function CredentialsPage() {
 
   const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const selectedProduct = products.find(p => p.id === productId);
+    const isOtt = selectedProduct?.category === 'OTT';
     setMessage(null)
 
     if (!productId || !bulkText.trim()) {
@@ -206,11 +220,22 @@ export default function CredentialsPage() {
 
       const parts = cleanLine.split(bulkSeparator)
       if (parts.length >= 2) {
+        let months = 1;
+        let pass = parts.slice(1).join(bulkSeparator).trim();
+        
+        if (isOtt && parts.length >= 3) {
+            months = parseInt(parts[parts.length - 1].trim()) || 1;
+            pass = parts.slice(1, -1).join(bulkSeparator).trim();
+        } else if (!isOtt) {
+            months = 0;
+        }
+
         insertPayload.push({
           product_id: productId,
           email_or_username: parts[0].trim(),
-          password: parts.slice(1).join(bulkSeparator).trim(), // Join back in case pass contains separator
-          status: 'UNUSED'
+          password: pass,
+          status: 'UNUSED',
+          subscription_months: months
         })
       } else {
         failedLinesCount++
@@ -341,6 +366,20 @@ export default function CredentialsPage() {
                     className="w-full px-4 py-2.5 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text placeholder-gray-600 focus:outline-none focus:border-yellow-400"
                   />
                 </div>
+                {products.find(p => p.id === productId)?.category === 'OTT' && (
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Subscription Duration (Months)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={subscriptionMonths}
+                      onChange={(e) => setSubscriptionMonths(e.target.value)}
+                      placeholder="e.g. 1, 3, 6"
+                      className="w-full px-4 py-2.5 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text placeholder-gray-600 focus:outline-none focus:border-yellow-400"
+                    />
+                  </div>
+                )}
                 <button
                   type="submit"
                   className="w-full py-2.5 bg-gradient-to-r from-yellow-600 to-teal-600 hover:from-yellow-500 hover:to-teal-500 text-white font-bold rounded-lg uppercase tracking-widest transition-all shadow-glow-yellow active:scale-[0.98]"
@@ -365,7 +404,7 @@ export default function CredentialsPage() {
                   </div>
                   <div className="flex items-end text-[10px] text-gray-500 leading-tight">
                     Format line-by-line:<br/>
-                    username{bulkSeparator}password
+                    {products.find(p => p.id === productId)?.category === 'OTT' ? `username${bulkSeparator}password${bulkSeparator}months` : `username${bulkSeparator}password`}
                   </div>
                 </div>
 
@@ -403,6 +442,7 @@ export default function CredentialsPage() {
                   <th className="py-3 px-4 uppercase tracking-wider font-bold">Product Item</th>
                   <th className="py-3 px-4 uppercase tracking-wider font-bold">Account / Email</th>
                   <th className="py-3 px-4 uppercase tracking-wider font-bold">Account Password</th>
+                  <th className="py-3 px-4 uppercase tracking-wider font-bold text-center">Timer / Validity</th>
                   <th className="py-3 px-4 uppercase tracking-wider font-bold text-center">Status</th>
                   <th className="py-3 px-4 uppercase tracking-wider font-bold text-center">Actions</th>
                 </tr>
@@ -419,6 +459,30 @@ export default function CredentialsPage() {
                       <td className="py-3 px-4 font-mono text-gray-400">{cred.email_or_username}</td>
                       <td className="py-3 px-4 font-mono text-gray-500 group-hover:text-cyber-text transition-all select-all">
                         <code>{cred.password}</code>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {cred.products?.category === 'OTT' && cred.subscription_months ? (() => {
+                          const created = new Date(cred.created_at);
+                          const expires = new Date(created);
+                          expires.setMonth(expires.getMonth() + cred.subscription_months);
+                          
+                          const diffTime = Math.abs(currentTime.getTime() - created.getTime());
+                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                          
+                          const leftTime = expires.getTime() - currentTime.getTime();
+                          const leftDays = Math.ceil(leftTime / (1000 * 60 * 60 * 24));
+                          
+                          const isExpired = leftDays <= 0;
+                          
+                          return (
+                            <div className="flex flex-col gap-1 items-center">
+                              <span className="text-[10px] text-gray-500 font-medium">Fed {diffDays === 0 ? 'Today' : `${diffDays} days ago`}</span>
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${isExpired ? 'bg-red-950/80 text-red-500' : 'bg-emerald-950/30 text-emerald-400'}`}>
+                                {isExpired ? 'EXPIRED' : `${leftDays} days left`}
+                              </span>
+                            </div>
+                          );
+                        })() : <span className="text-gray-600">-</span>}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
@@ -506,6 +570,20 @@ export default function CredentialsPage() {
                   className="w-full px-4 py-2.5 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text focus:outline-none focus:border-yellow-400"
                 />
               </div>
+
+              {products.find(p => p.id === editProductId)?.category === 'OTT' && (
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Subscription Duration (Months)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editSubscriptionMonths}
+                    onChange={(e) => setEditSubscriptionMonths(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text focus:outline-none focus:border-yellow-400"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Status</label>

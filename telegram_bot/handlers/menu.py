@@ -64,8 +64,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"</blockquote>"
         )
         keyboard = [
-            [InlineKeyboardButton("🔴 Join OTT Channel 🔴", url="https://t.me/growix_otts")],
-            [InlineKeyboardButton("🔴 Join Games Channel 🔴", url="https://t.me/growix_games")],
+            [InlineKeyboardButton("🔴 Join OTT Channel 🔴", url="https://t.me/growix_otts", **{"style": "danger"} if True else {})],
+            [InlineKeyboardButton("🔴 Join Games Channel 🔴", url="https://t.me/growix_games", **{"style": "danger"} if True else {})],
             [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
         ]
         await update.message.reply_text(
@@ -176,7 +176,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 parse_mode="HTML"
             )
         else:
-            await query.answer("❌ You haven't joined all required channels yet! Please join them first.", show_alert=True)
+            await query.answer("❌ First join both the channels!", show_alert=True)
             
     elif data == "main_menu":
         is_member = await check_channel_membership(user.id, context)
@@ -189,8 +189,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 f"</blockquote>"
             )
             keyboard = [
-                [InlineKeyboardButton("🔴 Join OTT Channel 🔴", url="https://t.me/growix_otts")],
-                [InlineKeyboardButton("🔴 Join Games Channel 🔴", url="https://t.me/growix_games")],
+                [InlineKeyboardButton("🔴 Join OTT Channel 🔴", url="https://t.me/growix_otts", **{"style": "danger"} if True else {})],
+                [InlineKeyboardButton("🔴 Join Games Channel 🔴", url="https://t.me/growix_games", **{"style": "danger"} if True else {})],
                 [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
             ]
             await query.edit_message_text(
@@ -215,7 +215,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data.startswith("cat_"):
         is_member = await check_channel_membership(user.id, context)
         if not is_member:
-            await query.answer("❌ Please join our channels first!", show_alert=True)
+            await query.answer("❌ First join both the channels!", show_alert=True)
             return
 
         category = data.split("_")[1]

@@ -119,7 +119,7 @@ async def send_credential_email(to_email: str, product_name: str, order_id: str,
         return False
 
 
-async def send_game_credential_email(to_email: str, product_name: str, order_id: str, username: str, password: str) -> bool:
+async def send_game_credential_email(to_email: str, product_name: str, order_id: str, username: str, password: str, subscription_info: str = "") -> bool:
     """
     Sends game login credentials to the customer via email after automated delivery.
     """
@@ -147,6 +147,7 @@ async def send_game_credential_email(to_email: str, product_name: str, order_id:
                 <h3 style="margin-top: 0; color: #fff;">Your {product_name} Login Credentials:</h3>
                 <p style="margin: 8px 0;"><strong>👤 Username/Email:</strong> <code style="background: #334155; padding: 2px 6px; border-radius: 4px;">{username}</code></p>
                 <p style="margin: 8px 0;"><strong>🔒 Password:</strong> <code style="background: #334155; padding: 2px 6px; border-radius: 4px;">{password}</code></p>
+                {f'<p style="margin: 8px 0; color: #38bdf8;"><strong>⏳ {subscription_info}</strong></p>' if subscription_info else ''}
             </div>
             <p style="font-size: 15px; line-height: 1.5; color: #d1d5db;">
                 Your <strong>{product_name}</strong> account is ready! Please log in and change your password immediately to secure your account. Enjoy your premium experience! ✨
