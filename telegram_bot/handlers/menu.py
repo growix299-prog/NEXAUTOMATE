@@ -17,19 +17,18 @@ logger = logging.getLogger(__name__)
 # Main Menu Layout
 def get_reply_keyboard():
     return ReplyKeyboardMarkup([
-        ["📺 OTT Subscriptions", "🎮 Game Accounts"],
-        ["📝 Purchase History", "💬 Support"]
+        ["🛍️ Products", "📝 Purchase History"],
+        ["💬 Support"]
     ], resize_keyboard=True)
 
 def get_main_menu_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT"),
-            InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games")
+            InlineKeyboardButton("🛍️ Products", callback_data="view_products"),
+            InlineKeyboardButton("📝 Purchase History", callback_data="view_history")
         ],
         [
-            InlineKeyboardButton("📝 Purchase History", callback_data="view_history"),
-            InlineKeyboardButton("💬 Support", callback_data="view_support")
+            InlineKeyboardButton("↗️ Support", callback_data="view_support")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -63,9 +62,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not is_member:
         banner = (
-            f"🚀 <b>System Dashboard Activated</b>\n\n"
-            f"Hello <b>{html.escape(user.first_name)}</b>! To unlock our automated instant delivery of gaming credentials and premium OTT services, you must join our official channels.\n\n"
-            f"📌 <i>Join both channels below to continue:</i>"
+            f"🚀 System Dashboard Activated\n\n"
+            f"Hello {html.escape(user.first_name)}! To unlock our automated instant delivery of gaming credentials and premium OTT services, you must join our official channels.\n\n"
+            f"📌 Join the channel below to continue:"
         )
         keyboard = [
             [InlineKeyboardButton("🔴 Join Channel 🔴", url="https://t.me/aurexia_store", **{"style": "danger"} if True else {})],
@@ -259,13 +258,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             return
 
         banner = (
-            f"🚀 <b>System Dashboard Activated</b>\n\n"
-            f"📌 <b>Quick guide:</b>\n"
-            f"1. Tap 'OTT' or 'Games' to browse products.\n"
+            f"🚀 System Dashboard Activated\n\n"
+            f"📌 Quick guide:\n"
+            f"1. Tap 'Products'.\n"
             f"2. Choose the product you want.\n"
             f"3. Complete the payment.\n"
             f"4. Your product will be delivered instantly.\n\n"
-            f"📌 <i>Please choose a menu below:</i>"
+            f"📌 Please choose a menu:"
         )
         await query.edit_message_text(
             text=banner,
