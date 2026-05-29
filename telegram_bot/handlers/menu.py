@@ -35,15 +35,7 @@ def get_main_menu_keyboard():
 
 async def check_channel_membership(user_id, context: ContextTypes.DEFAULT_TYPE):
     """Checks if the user is a member of the required channels."""
-    channels = ["@aurexia_store"]
-    for channel in channels:
-        try:
-            member = await context.bot.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status in ['left', 'kicked', 'restricted']:
-                return False
-        except Exception as e:
-            logger.error(f"Error checking membership for {channel}: {e}")
-            return False
+    # Temporarily bypassed as requested by user
     return True
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
