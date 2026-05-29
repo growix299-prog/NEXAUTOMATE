@@ -426,37 +426,37 @@ async def admin_list_users(
         logger.error(f"Error listing users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/admin/users/{telegram_id}/refund")
-async def admin_refund_user(
+@app.post("/api/admin/users/{telegram_id}/deduct-funds")
+async def admin_deduct_funds(
     telegram_id: int,
     payload: WalletActionPayload,
     request: Request,
     _auth: bool = Depends(verify_admin_api_key)
 ):
-    """Refund amount to user's wallet."""
+    """Admin manually deducts funds from user's wallet."""
     client_ip = request.client.host if request.client else "unknown"
     check_rate_limit(client_ip, max_requests=10, window_seconds=60)
     
-    from backend.services.supabase_service import refund_wallet_balance
-    success = refund_wallet_balance(
+    from backend.services.supabase_service import deduct_wallet_balance
+    success = deduct_wallet_balance(
         telegram_id=telegram_id,
         amount=payload.amount,
-        reference_id="ADMIN_REFUND",
-        description=payload.description or f"Admin refund of ₹{payload.amount:.2f}"
+        reference_id="ADMIN_DEDUCT",
+        description=payload.description or f"Admin deduction of ₹{payload.amount:.2f}"
     )
     
     if success:
         new_balance = get_wallet_balance(telegram_id)
         # Notify user via Telegram
         msg = (
-            f"💰 <b>WALLET REFUND</b>\n\n"
-            f"₹{payload.amount:.2f} has been refunded to your wallet by the admin.\n"
+            f"📉 <b>WALLET BALANCE UPDATED</b>\n\n"
+            f"₹{payload.amount:.2f} has been deducted from your wallet by the admin.\n"
             f"👛 <b>New Balance:</b> ₹{new_balance:.2f}"
         )
         await send_telegram_message(telegram_id, msg)
         return {"status": "ok", "new_balance": new_balance}
     else:
-        raise HTTPException(status_code=500, detail="Failed to refund wallet")
+        raise HTTPException(status_code=500, detail="Failed to deduct funds. Insufficient balance?")
 
 @app.post("/api/admin/users/{telegram_id}/add-funds")
 async def admin_add_funds(

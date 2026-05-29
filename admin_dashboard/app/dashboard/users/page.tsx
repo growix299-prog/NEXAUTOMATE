@@ -23,7 +23,7 @@ export default function UsersPage() {
   const [balanceFilter, setBalanceFilter] = useState('ALL')
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [modalTab, setModalTab] = useState<'orders'|'transactions'>('orders')
-  const [actionModal, setActionModal] = useState<{type: 'refund'|'add'|null, user: any}>({type: null, user: null})
+  const [actionModal, setActionModal] = useState<{type: 'deduct'|'add'|null, user: any}>({type: null, user: null})
   const [actionAmount, setActionAmount] = useState('')
   const [actionDesc, setActionDesc] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -81,14 +81,10 @@ export default function UsersPage() {
     const tgId = actionModal.user.telegram_id
     const amt = parseFloat(actionAmount)
     try {
-      if (actionModal.type === 'refund') {
-        const cur = parseFloat(actionModal.user.wallet_balance || 0)
-        await supabase.from('users').update({ wallet_balance: cur + amt }).eq('telegram_id', tgId)
-        await supabase.from('wallet_transactions').insert({ telegram_id: tgId, amount: amt, transaction_type: 'REFUND', reference_id: 'ADMIN_REFUND', description: actionDesc || `Admin refund of ₹${amt.toFixed(2)}` })
+      if (actionModal.type === 'deduct') {
+        await adminFetch(`/api/admin/users/${tgId}/deduct-funds`, { method: 'POST', body: JSON.stringify({ amount: amt, description: actionDesc }) })
       } else {
-        const cur = parseFloat(actionModal.user.wallet_balance || 0)
-        await supabase.from('users').update({ wallet_balance: cur + amt }).eq('telegram_id', tgId)
-        await supabase.from('wallet_transactions').insert({ telegram_id: tgId, amount: amt, transaction_type: 'DEPOSIT', reference_id: 'ADMIN_CREDIT', description: actionDesc || `Admin credit of ₹${amt.toFixed(2)}` })
+        await adminFetch(`/api/admin/users/${tgId}/add-funds`, { method: 'POST', body: JSON.stringify({ amount: amt, description: actionDesc }) })
       }
       setActionModal({type: null, user: null})
       setActionAmount('')
@@ -166,7 +162,7 @@ export default function UsersPage() {
                     <td className="py-4 px-4 text-center flex gap-1.5 justify-center">
                       <button onClick={() => { setSelectedUser(u); setModalTab('orders') }} className="p-1.5 bg-blue-950/30 border border-blue-500/30 text-blue-400 rounded hover:bg-blue-900/50 transition-colors" title="View Details"><Eye className="w-4 h-4"/></button>
                       <button onClick={() => setActionModal({type:'add', user:u})} className="p-1.5 bg-emerald-950/30 border border-emerald-500/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors" title="Add Funds"><Plus className="w-4 h-4"/></button>
-                      <button onClick={() => setActionModal({type:'refund', user:u})} className="p-1.5 bg-purple-950/30 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-900/50 transition-colors" title="Refund"><RotateCcw className="w-4 h-4"/></button>
+                      <button onClick={() => setActionModal({type:'deduct', user:u})} className="p-1.5 bg-purple-950/30 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-900/50 transition-colors" title="Deduct Funds"><RotateCcw className="w-4 h-4"/></button>
                       <button onClick={() => handleDelete(u.telegram_id)} className="p-1.5 bg-red-950/30 border border-red-500/30 text-red-400 rounded hover:bg-red-900/50 transition-colors" title="Delete User"><Trash2 className="w-4 h-4"/></button>
                     </td>
                   </tr>
@@ -179,8 +175,8 @@ export default function UsersPage() {
 
       {/* User Detail Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUser(null)}>
-          <div className="bg-cyber-bg border border-cyber-border rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" onClick={() => setSelectedUser(null)}>
+          <div className="bg-cyber-bg border border-cyber-border rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto relative z-[101]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-cyber-border flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-white font-playfair">{selectedUser.first_name || 'User'} — @{selectedUser.username || 'N/A'}</h2>
@@ -231,12 +227,12 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Refund / Add Funds Modal */}
+      {/* Deduct / Add Funds Modal */}
       {actionModal.type && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setActionModal({type:null,user:null})}>
-          <div className="bg-cyber-bg border border-cyber-border rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" onClick={() => setActionModal({type:null,user:null})}>
+          <div className="bg-cyber-bg border border-cyber-border rounded-2xl w-full max-w-md relative z-[101]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-cyber-border">
-              <h2 className="text-lg font-black text-white font-playfair">{actionModal.type === 'refund' ? '↩️ Refund to Wallet' : '➕ Add Funds'}</h2>
+              <h2 className="text-lg font-black text-white font-playfair">{actionModal.type === 'deduct' ? '➖ Deduct Funds' : '➕ Add Funds'}</h2>
               <p className="text-xs text-gray-500 mt-1 font-sfpro">User: <code className="text-yellow-400">{actionModal.user.telegram_id}</code> — {actionModal.user.first_name || 'N/A'}</p>
             </div>
             <div className="p-6 space-y-4">
@@ -250,8 +246,8 @@ export default function UsersPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setActionModal({type:null,user:null})} className="flex-1 py-2.5 bg-cyber-card border border-cyber-border rounded-lg text-gray-400 text-xs font-bold hover:text-white transition-all">Cancel</button>
-                <button onClick={handleWalletAction} disabled={actionLoading || !actionAmount} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${actionModal.type==='refund'?'bg-purple-950 border border-purple-500/30 text-purple-400 hover:bg-purple-900':'bg-emerald-950 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-900'} disabled:opacity-50`}>
-                  {actionLoading ? 'Processing...' : actionModal.type === 'refund' ? 'Refund' : 'Add Funds'}
+                <button onClick={handleWalletAction} disabled={actionLoading || !actionAmount} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${actionModal.type==='deduct'?'bg-purple-950 border border-purple-500/30 text-purple-400 hover:bg-purple-900':'bg-emerald-950 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-900'} disabled:opacity-50`}>
+                  {actionLoading ? 'Processing...' : actionModal.type === 'deduct' ? 'Deduct Funds' : 'Add Funds'}
                 </button>
               </div>
             </div>
