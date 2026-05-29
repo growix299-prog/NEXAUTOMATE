@@ -7,14 +7,6 @@ import { Search, RefreshCw, Trash2, Eye, Plus, RotateCcw, X, Users, Wallet, Shop
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
 const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY || ''
 
-async function adminFetch(path: string, options: any = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', 'X-Admin-API-Key': ADMIN_KEY, ...options.headers },
-  })
-  return res.json()
-}
-
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
@@ -23,7 +15,7 @@ export default function UsersPage() {
   const [balanceFilter, setBalanceFilter] = useState('ALL')
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [modalTab, setModalTab] = useState<'orders'|'transactions'>('orders')
-  const [actionModal, setActionModal] = useState<{type: 'deduct'|'add'|null, user: any}>({type: null, user: null})
+  const [actionModal, setActionModal] = useState<{type: 'add'|null, user: any}>({type: null, user: null})
   const [actionAmount, setActionAmount] = useState('')
   const [actionDesc, setActionDesc] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -38,8 +30,26 @@ export default function UsersPage() {
         u.orders = ordersResp.data || []
         u.total_orders = u.orders.length
         u.total_spent = u.orders.filter((o: any) => o.status === 'COMPLETED').reduce((s: number, o: any) => s + parseFloat(o.amount || 0), 0)
+        
+        // Enrich wallet transactions with detailed Razorpay data
         const txnResp = await supabase.from('wallet_transactions').select('*').eq('telegram_id', u.telegram_id).order('created_at', { ascending: false })
-        u.wallet_transactions = txnResp.data || []
+        const txns = txnResp.data || []
+        
+        // Fetch matching payments for detailed info
+        for (const t of txns) {
+          if (t.reference_id && t.reference_id.startsWith('pay_')) {
+            const payResp = await supabase.from('payments').select('payload').eq('razorpay_payment_id', t.reference_id).limit(1)
+            if (payResp.data && payResp.data.length > 0) {
+              try {
+                const method = payResp.data[0].payload?.payload?.payment?.entity?.method
+                const vpa = payResp.data[0].payload?.payload?.payment?.entity?.vpa
+                const email = payResp.data[0].payload?.payload?.payment?.entity?.email
+                t.payment_details = `Method: ${method || 'Unknown'}` + (vpa ? ` | UPI: ${vpa}` : '') + (email ? ` | Email: ${email}` : '')
+              } catch(e) {}
+            }
+          }
+        }
+        u.wallet_transactions = txns
       }
       setUsers(allUsers)
       setFiltered(allUsers)
@@ -67,12 +77,31 @@ export default function UsersPage() {
   const handleDelete = async (tgId: number) => {
     if (!window.confirm(`Permanently delete user ${tgId} and ALL related data (orders, transactions, reviews)?`)) return
     try {
-      const res = await adminFetch(`/api/admin/users/${tgId}`, { method: 'DELETE' })
-      if (res.status === 'ok') {
-        fetchUsers()
-      } else {
-        alert('Delete failed: ' + (res.detail || res.message || 'Unknown error'))
+      // Fetch user's orders to handle foreign keys
+      const { data: userOrders } = await supabase.from('orders').select('id, payment_id').eq('telegram_id', tgId)
+      
+      if (userOrders && userOrders.length > 0) {
+        const orderIds = userOrders.map(o => o.id)
+        const paymentIds = userOrders.map(o => o.payment_id).filter(Boolean)
+        
+        // Delete related OTT requests
+        if (orderIds.length > 0) {
+          await supabase.from('ott_requests').delete().in('order_id', orderIds)
+        }
+        // Delete related payments
+        if (paymentIds.length > 0) {
+          await supabase.from('payments').delete().in('payment_id', paymentIds).catch(() => {})
+        }
       }
+      
+      // Delete core records
+      await supabase.from('wallet_transactions').delete().eq('telegram_id', tgId)
+      await supabase.from('reviews').delete().eq('telegram_id', tgId)
+      await supabase.from('orders').delete().eq('telegram_id', tgId)
+      await supabase.from('users').delete().eq('telegram_id', tgId)
+      
+      alert('User successfully deleted.')
+      fetchUsers()
     } catch (e: any) { alert('Delete failed: ' + e.message) }
   }
 
@@ -81,12 +110,10 @@ export default function UsersPage() {
     setActionLoading(true)
     const tgId = actionModal.user.telegram_id
     const amt = parseFloat(actionAmount)
-    try {
-      if (actionModal.type === 'deduct') {
-        await adminFetch(`/api/admin/users/${tgId}/deduct-funds`, { method: 'POST', body: JSON.stringify({ amount: amt, description: actionDesc }) })
-      } else {
-        await adminFetch(`/api/admin/users/${tgId}/add-funds`, { method: 'POST', body: JSON.stringify({ amount: amt, description: actionDesc }) })
-      }
+      const cur = parseFloat(actionModal.user.wallet_balance || 0)
+      await supabase.from('users').update({ wallet_balance: cur + amt }).eq('telegram_id', tgId)
+      await supabase.from('wallet_transactions').insert({ telegram_id: tgId, amount: amt, transaction_type: 'DEPOSIT', reference_id: 'ADMIN_CREDIT', description: actionDesc || `Admin credit of ₹${amt.toFixed(2)}` })
+      
       setActionModal({type: null, user: null})
       setActionAmount('')
       setActionDesc('')
@@ -163,7 +190,6 @@ export default function UsersPage() {
                     <td className="py-4 px-4 text-center flex gap-1.5 justify-center">
                       <button onClick={() => { setSelectedUser(u); setModalTab('orders') }} className="p-1.5 bg-blue-950/30 border border-blue-500/30 text-blue-400 rounded hover:bg-blue-900/50 transition-colors" title="View Details"><Eye className="w-4 h-4"/></button>
                       <button onClick={() => setActionModal({type:'add', user:u})} className="p-1.5 bg-emerald-950/30 border border-emerald-500/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors" title="Add Funds"><Plus className="w-4 h-4"/></button>
-                      <button onClick={() => setActionModal({type:'deduct', user:u})} className="p-1.5 bg-purple-950/30 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-900/50 transition-colors" title="Deduct Funds"><RotateCcw className="w-4 h-4"/></button>
                       <button onClick={() => handleDelete(u.telegram_id)} className="p-1.5 bg-red-950/30 border border-red-500/30 text-red-400 rounded hover:bg-red-900/50 transition-colors" title="Delete User"><Trash2 className="w-4 h-4"/></button>
                     </td>
                   </tr>
@@ -216,7 +242,10 @@ export default function UsersPage() {
                     <tr key={t.id} className="hover:bg-cyber-card/20">
                       <td className="py-3 px-3"><span className={`px-2 py-0.5 rounded text-[9px] font-bold ${t.transaction_type==='DEPOSIT'?'bg-emerald-950 text-emerald-400':t.transaction_type==='REFUND'?'bg-purple-950 text-purple-400':'bg-red-950 text-red-400'}`}>{t.transaction_type}</span></td>
                       <td className={`py-3 px-3 text-right font-bold ${t.transaction_type==='PURCHASE'?'text-red-400':'text-emerald-400'}`}>{t.transaction_type==='PURCHASE'?'-':'+'} ₹{parseFloat(t.amount||0).toFixed(2)}</td>
-                      <td className="py-3 px-3 text-gray-300">{t.description || '-'}</td>
+                      <td className="py-3 px-3 text-gray-300">
+                        {t.description || '-'}
+                        {t.payment_details && <div className="text-[9px] text-yellow-500 mt-1">{t.payment_details}</div>}
+                      </td>
                       <td className="py-3 px-3 text-yellow-400 font-mono text-[10px]">{t.reference_id || '-'}</td>
                       <td className="py-3 px-3 text-gray-500">{(t.created_at||'').slice(0,10)}</td>
                     </tr>
@@ -228,12 +257,12 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Deduct / Add Funds Modal */}
-      {actionModal.type && (
+      {/* Add Funds Modal */}
+      {actionModal.type === 'add' && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" onClick={() => setActionModal({type:null,user:null})}>
           <div className="bg-cyber-bg border border-cyber-border rounded-2xl w-full max-w-md relative z-[101]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-cyber-border">
-              <h2 className="text-lg font-black text-white font-playfair">{actionModal.type === 'deduct' ? '➖ Deduct Funds' : '➕ Add Funds'}</h2>
+              <h2 className="text-lg font-black text-white font-playfair">➕ Add Funds</h2>
               <p className="text-xs text-gray-500 mt-1 font-sfpro">User: <code className="text-yellow-400">{actionModal.user.telegram_id}</code> — {actionModal.user.first_name || 'N/A'}</p>
             </div>
             <div className="p-6 space-y-4">
@@ -247,8 +276,8 @@ export default function UsersPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setActionModal({type:null,user:null})} className="flex-1 py-2.5 bg-cyber-card border border-cyber-border rounded-lg text-gray-400 text-xs font-bold hover:text-white transition-all">Cancel</button>
-                <button onClick={handleWalletAction} disabled={actionLoading || !actionAmount} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${actionModal.type==='deduct'?'bg-purple-950 border border-purple-500/30 text-purple-400 hover:bg-purple-900':'bg-emerald-950 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-900'} disabled:opacity-50`}>
-                  {actionLoading ? 'Processing...' : actionModal.type === 'deduct' ? 'Deduct Funds' : 'Add Funds'}
+                <button onClick={handleWalletAction} disabled={actionLoading || !actionAmount} className="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all bg-emerald-950 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-900 disabled:opacity-50">
+                  {actionLoading ? 'Processing...' : 'Add Funds'}
                 </button>
               </div>
             </div>
