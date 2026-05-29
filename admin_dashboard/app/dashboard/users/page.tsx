@@ -67,11 +67,12 @@ export default function UsersPage() {
   const handleDelete = async (tgId: number) => {
     if (!window.confirm(`Permanently delete user ${tgId} and ALL related data (orders, transactions, reviews)?`)) return
     try {
-      await supabase.from('wallet_transactions').delete().eq('telegram_id', tgId)
-      await supabase.from('reviews').delete().eq('telegram_id', tgId)
-      await supabase.from('orders').delete().eq('telegram_id', tgId)
-      await supabase.from('users').delete().eq('telegram_id', tgId)
-      fetchUsers()
+      const res = await adminFetch(`/api/admin/users/${tgId}`, { method: 'DELETE' })
+      if (res.status === 'ok') {
+        fetchUsers()
+      } else {
+        alert('Delete failed: ' + (res.detail || res.message || 'Unknown error'))
+      }
     } catch (e: any) { alert('Delete failed: ' + e.message) }
   }
 
