@@ -30,12 +30,12 @@ def get_reply_keyboard():
 def get_main_menu_keyboard():
     keyboard = [
         [
-            InlineKeyboardButton("🛍️ Products", callback_data="view_products"),
+            InlineKeyboardButton("🛍 Products", callback_data="view_products"),
             InlineKeyboardButton("👛 Wallet", callback_data="view_wallet")
         ],
         [
-            InlineKeyboardButton("📝 Purchase History", callback_data="view_history"),
-            InlineKeyboardButton("↗️ Support", callback_data="view_support")
+            InlineKeyboardButton("📋 Purchase History", callback_data="view_history"),
+            InlineKeyboardButton("🔄 Support", callback_data="view_support")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
