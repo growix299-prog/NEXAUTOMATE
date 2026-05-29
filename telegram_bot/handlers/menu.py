@@ -589,12 +589,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
     elif data == "view_support":
         support_text = (
-            f"<blockquote>"
-            f"ℹ️ <b>PREMIUM CUSTOMER SUPPORT</b> ℹ️\n\n"
-            f"Experiencing an issue with a digital product or payment? Our elite support team is ready to assist you.\n\n"
-            f"👤 <b>Admin Contact:</b> @ur_aurexia222\n\n"
-            f"<i>Please provide your Order Reference ID when reaching out for the fastest resolution.</i>"
-            f"</blockquote>"
+            f"🎧 𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐂𝐔𝐒𝐓𝐎𝐌𝐄𝐑 𝐒𝐔𝐏𝐏𝐎𝐑𝐓\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"Need help with your digital products or payments? Our elite support team is ready to assist you 24/7.\n\n"
+            f"👨‍💻 𝗔𝗱𝗺𝗶𝗻 𝗖𝗼𝗻𝘁𝗮𝗰𝘁: @ur_aurexia222\n\n"
+            f"📌 𝘗𝘭𝘦𝘢𝘴𝘦 𝘬𝘦𝘦𝘱 𝘺𝘰𝘶𝘳 𝘖𝘳𝘥𝘦𝘳 𝘐𝘋 𝘳𝘦𝘢𝘥𝘺 𝘧𝘰𝘳 𝘧𝘢𝘴𝘵𝘦𝘳 𝘳𝘦𝘴𝘰𝘭𝘶𝘵𝘪𝘰𝘯.\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"👇 Click the button below to start a live chat"
         )
         keyboard = [
             [InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/ur_aurexia222")],
