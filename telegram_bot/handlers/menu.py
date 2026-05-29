@@ -631,8 +631,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         short_url = pay_res["short_url"]
         deposit_confirm_text = (
-            f"✅ <b>Deposit Link Generated!</b>\n\n"
-            f"💰 <b>Amount:</b> ₹{amount:.2f}\n\n"
+            f"<tg-emoji emoji-id=\"6093648802986592017\">✅</tg-emoji> <b>Deposit Link Generated!</b>\n\n"
+            f"<tg-emoji emoji-id=\"6230853345733510932\">💰</tg-emoji> <b>Amount:</b> ₹{amount:.2f}\n\n"
             f"Click the button below to complete your deposit securely via Razorpay.\n"
             f"Your wallet will be credited instantly after payment confirmation."
         )
