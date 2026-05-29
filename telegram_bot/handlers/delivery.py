@@ -20,7 +20,25 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     message = update.message
     user = update.effective_user
-    text = message.text.strip()
+    text = message.text or ""
+
+    # --- CUSTOM EMOJI ID EXTRACTOR TOOL ---
+    if message.entities:
+        custom_emojis = [
+            entity.custom_emoji_id 
+            for entity in message.entities 
+            if entity.type == 'custom_emoji' and hasattr(entity, 'custom_emoji_id')
+        ]
+        if custom_emojis:
+            response = "🛠️ <b>Custom Emoji IDs Extracted:</b>\n\n"
+            for e_id in custom_emojis:
+                response += f"<code>{e_id}</code>\n"
+            response += "\n<i>Copy these IDs and send them to the developer to use in the bot!</i>"
+            await message.reply_text(response, parse_mode="HTML")
+            return
+    # --------------------------------------
+    if text:
+        text = text.strip()
     supabase = get_db()
 
     # 1. Check if user is writing a review
