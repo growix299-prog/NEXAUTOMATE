@@ -82,7 +82,6 @@ export default function UsersPage() {
     const amt = parseFloat(actionAmount)
     try {
       if (actionModal.type === 'refund') {
-        await supabase.rpc('', {}).catch(() => {})
         const cur = parseFloat(actionModal.user.wallet_balance || 0)
         await supabase.from('users').update({ wallet_balance: cur + amt }).eq('telegram_id', tgId)
         await supabase.from('wallet_transactions').insert({ telegram_id: tgId, amount: amt, transaction_type: 'REFUND', reference_id: 'ADMIN_REFUND', description: actionDesc || `Admin refund of ₹${amt.toFixed(2)}` })
