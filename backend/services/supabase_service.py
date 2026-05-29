@@ -159,3 +159,95 @@ def create_review(telegram_id: int, username: str, first_name: str, review_text:
         logger.error(f"Error creating review for {telegram_id}: {str(e)}")
         return False
 
+# ==========================================
+# WALLET SYSTEM FUNCTIONS
+# ==========================================
+
+def get_wallet_balance(telegram_id: int) -> float:
+    """Get the current wallet balance for a user."""
+    try:
+        response = supabase.table("users").select("wallet_balance").eq("telegram_id", telegram_id).execute()
+        if response.data:
+            return float(response.data[0].get("wallet_balance", 0) or 0)
+    except Exception as e:
+        logger.error(f"Error fetching wallet balance for {telegram_id}: {str(e)}")
+    return 0.0
+
+def add_wallet_balance(telegram_id: int, amount: float, reference_id: str = None, description: str = None) -> bool:
+    """Add funds to a user's wallet (deposit or refund)."""
+    try:
+        current = get_wallet_balance(telegram_id)
+        new_balance = current + amount
+        supabase.table("users").update({
+            "wallet_balance": new_balance
+        }).eq("telegram_id", telegram_id).execute()
+        
+        # Log the transaction
+        supabase.table("wallet_transactions").insert({
+            "telegram_id": telegram_id,
+            "amount": amount,
+            "transaction_type": "DEPOSIT",
+            "reference_id": reference_id,
+            "description": description or f"Wallet deposit of ₹{amount:.2f}"
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error adding wallet balance for {telegram_id}: {str(e)}")
+        return False
+
+def deduct_wallet_balance(telegram_id: int, amount: float, reference_id: str = None, description: str = None) -> bool:
+    """Deduct funds from a user's wallet for a purchase."""
+    try:
+        current = get_wallet_balance(telegram_id)
+        if current < amount:
+            logger.warning(f"Insufficient wallet balance for {telegram_id}: has ₹{current}, needs ₹{amount}")
+            return False
+        new_balance = current - amount
+        supabase.table("users").update({
+            "wallet_balance": new_balance
+        }).eq("telegram_id", telegram_id).execute()
+        
+        # Log the transaction
+        supabase.table("wallet_transactions").insert({
+            "telegram_id": telegram_id,
+            "amount": amount,
+            "transaction_type": "PURCHASE",
+            "reference_id": reference_id,
+            "description": description or f"Product purchase of ₹{amount:.2f}"
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error deducting wallet balance for {telegram_id}: {str(e)}")
+        return False
+
+def refund_wallet_balance(telegram_id: int, amount: float, reference_id: str = None, description: str = None) -> bool:
+    """Refund funds back to a user's wallet."""
+    try:
+        current = get_wallet_balance(telegram_id)
+        new_balance = current + amount
+        supabase.table("users").update({
+            "wallet_balance": new_balance
+        }).eq("telegram_id", telegram_id).execute()
+        
+        # Log the refund transaction
+        supabase.table("wallet_transactions").insert({
+            "telegram_id": telegram_id,
+            "amount": amount,
+            "transaction_type": "REFUND",
+            "reference_id": reference_id,
+            "description": description or f"Refund of ₹{amount:.2f}"
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error refunding wallet for {telegram_id}: {str(e)}")
+        return False
+
+def get_wallet_transactions(telegram_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get recent wallet transactions for a user."""
+    try:
+        response = supabase.table("wallet_transactions").select("*").eq("telegram_id", telegram_id).order("created_at", desc=True).limit(limit).execute()
+        return response.data or []
+    except Exception as e:
+        logger.error(f"Error fetching wallet transactions for {telegram_id}: {str(e)}")
+        return []
+

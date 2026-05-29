@@ -8,7 +8,13 @@ from backend.services.supabase_service import (
     create_user_if_not_exists,
     get_db,
     create_order,
-    get_unused_credential
+    get_unused_credential,
+    get_wallet_balance,
+    deduct_wallet_balance,
+    refund_wallet_balance,
+    get_wallet_transactions,
+    mark_credential_used,
+    update_order_completed
 )
 from telegram_bot.services.razorpay_service import create_payment_link
 
@@ -17,17 +23,18 @@ logger = logging.getLogger(__name__)
 # Main Menu Layout
 def get_reply_keyboard():
     return ReplyKeyboardMarkup([
-        ["🛍️ Products", "📝 Purchase History"],
-        ["↗️ Support"]
+        ["🛍️ Products", "👛 Wallet"],
+        ["📝 Purchase History", "↗️ Support"]
     ], resize_keyboard=True)
 
 def get_main_menu_keyboard():
     keyboard = [
         [
             InlineKeyboardButton("🛍️ Products", callback_data="view_products"),
-            InlineKeyboardButton("📝 Purchase History", callback_data="view_history")
+            InlineKeyboardButton("👛 Wallet", callback_data="view_wallet")
         ],
         [
+            InlineKeyboardButton("📝 Purchase History", callback_data="view_history"),
             InlineKeyboardButton("↗️ Support", callback_data="view_support")
         ]
     ]
@@ -443,6 +450,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         price = float(product["price"])
         emoji = get_product_emoji(product['name'])
+        wallet_balance = get_wallet_balance(user.id)
         
         checkout_text = (
             f"⚠️ <b>PURCHASE CONFIRMATION</b> ⚠️\n\n"
@@ -450,15 +458,17 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             f"🔢 <b>Quantity:</b> 1\n"
             f"💵 <b>Base Total:</b> ₹{price:.2f}\n\n"
             f"💲 <b>FINAL DUE:</b> ₹{price:.2f}\n\n"
+            f"👛 <b>Wallet Balance:</b> ₹{wallet_balance:.2f}\n\n"
             f"Select payment method:"
         )
 
-        keyboard = [
-            [InlineKeyboardButton("👛 Pay with Wallet (₹0.00)", callback_data="alert_wallet")],
-            [InlineKeyboardButton("🟨 Binance Pay / Crypto", callback_data="alert_crypto")],
-            [InlineKeyboardButton("💳 Pay with Razorpay (Auto)", callback_data=f"rzpterms_{product['id']}")],
-            [InlineKeyboardButton("❌ Cancel", callback_data="main_menu")]
-        ]
+        keyboard = []
+        if wallet_balance >= price:
+            keyboard.append([InlineKeyboardButton(f"👛 Pay with Wallet (₹{wallet_balance:.2f})", callback_data=f"walletpay_{product['id']}")] )
+        else:
+            keyboard.append([InlineKeyboardButton(f"👛 Wallet (₹{wallet_balance:.2f}) — Insufficient", callback_data="alert_wallet")])
+        keyboard.append([InlineKeyboardButton("💳 Pay with Razorpay (Auto)", callback_data=f"rzpterms_{product['id']}")])
+        keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="main_menu")])
 
         await query.edit_message_text(
             text=checkout_text,
@@ -467,11 +477,205 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
     elif data == "alert_wallet":
-        await query.answer("❌ Wallet balance is ₹0.00! Please use Razorpay.", show_alert=True)
+        await query.answer("❌ Insufficient wallet balance! Add funds first or use Razorpay.", show_alert=True)
         return
 
-    elif data == "alert_crypto":
-        await query.answer("⏳ Binance Pay is currently under maintenance. Please use Razorpay.", show_alert=True)
+    elif data.startswith("walletpay_"):
+        product_id = data.split("_")[1]
+        try:
+            response = supabase.table("products").select("*").eq("id", product_id).execute()
+            product = response.data[0] if response.data else None
+        except Exception as e:
+            product = None
+
+        if not product:
+            await query.edit_message_text("❌ Product not found.", parse_mode="HTML")
+            return
+
+        price = float(product["price"])
+        wallet_balance = get_wallet_balance(user.id)
+
+        if wallet_balance < price:
+            await query.answer(f"❌ Insufficient balance! You have ₹{wallet_balance:.2f} but need ₹{price:.2f}.", show_alert=True)
+            return
+
+        # Deduct from wallet
+        success = deduct_wallet_balance(
+            telegram_id=user.id,
+            amount=price,
+            description=f"Purchase: {product['name']}"
+        )
+
+        if not success:
+            await query.answer("❌ Wallet deduction failed. Try again.", show_alert=True)
+            return
+
+        # Create a wallet-based order
+        order_data = create_order(
+            telegram_id=user.id,
+            product_id=product["id"],
+            payment_id=f"WALLET_{user.id}_{int(__import__('time').time())}",
+            amount=price
+        )
+
+        if not order_data:
+            # Refund if order creation failed
+            refund_wallet_balance(user.id, price, description=f"Refund: Order creation failed for {product['name']}")
+            await query.edit_message_text("❌ Order creation failed. Your wallet has been refunded.", parse_mode="HTML")
+            return
+
+        # Try to deliver credentials immediately
+        credential = get_unused_credential(product["id"])
+        if credential:
+            mark_credential_used(credential["id"])
+            update_order_completed(order_data["id"], "AWAITING_EMAIL_GAMES")
+
+            msg = (
+                f"🎉 <b>WALLET PAYMENT SUCCESSFUL!</b> 🎉\n\n"
+                f"Thank you for purchasing <b>{product['name']}</b>!\n\n"
+                f"💰 <b>Amount Paid:</b> ₹{price:.2f} (from Wallet)\n"
+                f"👛 <b>Remaining Balance:</b> ₹{get_wallet_balance(user.id):.2f}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📧 <b>NEXT STEP — SEND YOUR EMAIL</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"To receive your credentials securely, "
+                f"please <b>type and send your email address</b> in this chat right now.\n\n"
+                f"Your login ID and password will be delivered here instantly and also sent to your email! 🚀"
+            )
+            await query.edit_message_text(text=msg, parse_mode="HTML")
+        else:
+            # Out of stock — AUTO REFUND
+            refund_wallet_balance(
+                telegram_id=user.id,
+                amount=price,
+                reference_id=order_data["id"],
+                description=f"Auto-refund: {product['name']} out of stock"
+            )
+            update_order_completed(order_data["id"], "MANUAL_PROCESSING")
+
+            msg = (
+                f"❌ <b>OUT OF STOCK!</b>\n\n"
+                f"Sorry, <b>{product['name']}</b> is currently out of stock.\n\n"
+                f"💰 <b>₹{price:.2f} has been automatically refunded</b> to your wallet.\n"
+                f"👛 <b>Current Balance:</b> ₹{get_wallet_balance(user.id):.2f}\n\n"
+                f"Please try again later or contact support."
+            )
+            keyboard = [[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]
+            await query.edit_message_text(text=msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+
+    elif data == "view_wallet":
+        balance = get_wallet_balance(user.id)
+        wallet_text = (
+            f"👛 𝐌𝐘 𝐖𝐀𝐋𝐋𝐄𝐓\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n\n"
+            f"💰 <b>Current Balance:</b> ₹{balance:.2f}\n\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"📌 Add funds to your wallet for instant one-tap purchases!\n"
+            f"Minimum deposit: ₹100.00"
+        )
+        keyboard = [
+            [InlineKeyboardButton("➕ Add Funds", callback_data="wallet_deposit")],
+            [InlineKeyboardButton("🧾 Transaction History", callback_data="wallet_history")],
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+        ]
+        await query.edit_message_text(text=wallet_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+
+    elif data == "wallet_deposit":
+        deposit_text = (
+            f"➕ 𝐀𝐃𝐃 𝐅𝐔𝐍𝐃𝐒\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n\n"
+            f"Choose an amount to deposit into your wallet:\n\n"
+            f"Minimum: ₹100 | Maximum: ₹10,000\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬"
+        )
+        keyboard = [
+            [
+                InlineKeyboardButton("₹100", callback_data="deposit_100"),
+                InlineKeyboardButton("₹200", callback_data="deposit_200"),
+                InlineKeyboardButton("₹500", callback_data="deposit_500")
+            ],
+            [
+                InlineKeyboardButton("₹1000", callback_data="deposit_1000"),
+                InlineKeyboardButton("₹2000", callback_data="deposit_2000"),
+                InlineKeyboardButton("₹5000", callback_data="deposit_5000")
+            ],
+            [InlineKeyboardButton("🔙 Back to Wallet", callback_data="view_wallet")]
+        ]
+        await query.edit_message_text(text=deposit_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+
+    elif data.startswith("deposit_"):
+        amount = int(data.split("_")[1])
+        if amount < 100:
+            await query.answer("❌ Minimum deposit is ₹100!", show_alert=True)
+            return
+
+        await query.edit_message_text("<blockquote>⏳ <i>Generating secure payment link for wallet deposit...</i></blockquote>", parse_mode="HTML")
+
+        from telegram_bot.services.razorpay_service import create_deposit_payment_link
+        pay_res = await create_deposit_payment_link(
+            amount=float(amount),
+            telegram_id=user.id,
+            first_name=user.first_name
+        )
+
+        if not pay_res.get("success"):
+            await query.edit_message_text(
+                text=f"❌ <b>Error generating deposit link:</b>\n<code>{pay_res.get('error')}</code>",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Wallet", callback_data="view_wallet")]]),
+                parse_mode="HTML"
+            )
+            return
+
+        short_url = pay_res["short_url"]
+        deposit_confirm_text = (
+            f"✅ <b>Deposit Link Generated!</b>\n\n"
+            f"💰 <b>Amount:</b> ₹{amount:.2f}\n\n"
+            f"Click the button below to complete your deposit securely via Razorpay.\n"
+            f"Your wallet will be credited instantly after payment confirmation."
+        )
+        keyboard = [
+            [InlineKeyboardButton("🔗 Pay & Deposit via Razorpay", url=short_url)],
+            [InlineKeyboardButton("❌ Cancel", callback_data="view_wallet")]
+        ]
+        await query.edit_message_text(text=deposit_confirm_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+
+    elif data == "wallet_history":
+        transactions = get_wallet_transactions(user.id, limit=10)
+        if not transactions:
+            await query.edit_message_text(
+                text="🧾 <b>TRANSACTION HISTORY</b>\n\nNo transactions yet. Add funds to get started!",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Wallet", callback_data="view_wallet")]]),
+                parse_mode="HTML"
+            )
+            return
+
+        history_text = "🧾 𝐓𝐑𝐀𝐍𝐒𝐀𝐂𝐓𝐈𝐎𝐍 𝐇𝐈𝐒𝐓𝐎𝐑𝐘\n▬▬▬▬▬▬▬▬▬▬▬\n\n"
+        for idx, txn in enumerate(transactions, 1):
+            t_type = txn.get("transaction_type", "")
+            if t_type == "DEPOSIT":
+                emoji = "➕"
+                sign = "+"
+            elif t_type == "PURCHASE":
+                emoji = "🛒"
+                sign = "-"
+            elif t_type == "REFUND":
+                emoji = "↩️"
+                sign = "+"
+            else:
+                emoji = "📌"
+                sign = ""
+            
+            desc = txn.get("description", t_type)
+            date = txn.get("created_at", "")[:10]
+            amount = float(txn.get("amount", 0))
+            history_text += f"{idx}. {emoji} {sign}₹{amount:.2f}\n   {desc}\n   📅 {date}\n\n"
+
+        keyboard = [[InlineKeyboardButton("🔙 Back to Wallet", callback_data="view_wallet")]]
+        await query.edit_message_text(text=history_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
         return
 
     elif data.startswith("rzpterms_"):

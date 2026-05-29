@@ -177,6 +177,25 @@ async def handle_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text(text=support_text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Chat with Admin", url="https://t.me/ur_aurexia222")]]), parse_mode="HTML")
         return
 
+    elif text == "👛 Wallet":
+        from backend.services.supabase_service import get_wallet_balance, get_wallet_transactions
+        balance = get_wallet_balance(user.id)
+        wallet_text = (
+            f"👛 𝐌𝐘 𝐖𝐀𝐋𝐋𝐄𝐓\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n\n"
+            f"💰 <b>Current Balance:</b> ₹{balance:.2f}\n\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"📌 Add funds to your wallet for instant one-tap purchases!\n"
+            f"Minimum deposit: ₹100.00"
+        )
+        keyboard = [
+            [InlineKeyboardButton("➕ Add Funds", callback_data="wallet_deposit")],
+            [InlineKeyboardButton("🧾 Transaction History", callback_data="wallet_history")],
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+        ]
+        await message.reply_text(text=wallet_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        return
+
     # Default fallback: If no OTT registration is pending, show main menu keyboard
     fallback_text = (
         "💡 <b>Need assistance?</b>\n\n"

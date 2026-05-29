@@ -71,3 +71,63 @@ async def create_payment_link(
     except Exception as e:
         logger.error(f"Exception while contacting Razorpay API: {str(e)}")
         return {"success": False, "error": str(e)}
+
+async def create_deposit_payment_link(
+    amount: float,
+    telegram_id: int,
+    first_name: str
+) -> Dict[str, Any]:
+    """
+    Creates a Razorpay payment link specifically for wallet deposits.
+    Tags the notes with type=wallet_deposit so the webhook knows to credit the wallet.
+    """
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        logger.error("RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not configured!")
+        return {"success": False, "error": "Payment system not configured. Contact admin."}
+
+    amount_in_paise = int(amount * 100)
+
+    url = "https://api.razorpay.com/v1/payment_links"
+
+    payload = {
+        "amount": amount_in_paise,
+        "currency": "INR",
+        "accept_partial": False,
+        "description": f"Wallet Deposit of ₹{amount:.2f}",
+        "customer": {
+            "name": first_name,
+            "contact": "+919876543210"
+        },
+        "notify": {
+            "sms": False,
+            "email": False
+        },
+        "notes": {
+            "type": "wallet_deposit",
+            "telegram_id": str(telegram_id),
+            "amount": str(amount)
+        },
+        "callback_url": f"https://t.me/{os.getenv('TELEGRAM_BOT_USERNAME', 'FlashKeysS_Bot')}",
+        "callback_method": "get"
+    }
+
+    try:
+        auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, auth=auth, json=payload, timeout=12.0)
+
+            if response.status_code in (200, 201):
+                res_data = response.json()
+                logger.info(f"Razorpay Wallet Deposit Link generated: {res_data.get('id')}")
+                return {
+                    "success": True,
+                    "payment_link_id": res_data.get("id"),
+                    "short_url": res_data.get("short_url")
+                }
+            else:
+                logger.error(f"Razorpay API Error (deposit): {response.status_code} - {response.text}")
+                return {"success": False, "error": response.text}
+
+    except Exception as e:
+        logger.error(f"Exception while creating deposit link: {str(e)}")
+        return {"success": False, "error": str(e)}

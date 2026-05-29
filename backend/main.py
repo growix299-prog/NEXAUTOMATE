@@ -28,7 +28,9 @@ from backend.services.supabase_service import (
     get_unused_credential,
     mark_credential_used,
     create_payment_record,
-    create_ott_request
+    create_ott_request,
+    add_wallet_balance,
+    get_wallet_balance
 )
 from backend.services.resend_service import send_delivery_email, send_credential_email, send_game_credential_email
 
@@ -178,6 +180,56 @@ async def process_digital_delivery(order_id: str, payment_id: str, amount: float
     # 4. Notify Admin
     await notify_admin_on_sale(product_name, amount, category, order["id"])
 
+async def process_wallet_deposit(notes: Dict[str, Any], payment_id: str, amount: float, raw_payload: Dict[str, Any]):
+    """Processes a wallet deposit after Razorpay confirms payment."""
+    telegram_id = int(notes.get("telegram_id", 0))
+    if not telegram_id:
+        logger.error(f"Wallet deposit webhook missing telegram_id in notes: {notes}")
+        return
+
+    logger.info(f"Processing wallet deposit of ₹{amount} for telegram_id {telegram_id}")
+
+    # Log payment record
+    create_payment_record(payment_id, payment_id, amount, True, raw_payload)
+
+    # Credit the wallet
+    success = add_wallet_balance(
+        telegram_id=telegram_id,
+        amount=amount,
+        reference_id=payment_id,
+        description=f"Razorpay deposit of ₹{amount:.2f}"
+    )
+
+    if success:
+        new_balance = get_wallet_balance(telegram_id)
+        msg = (
+            f"✅ <b>WALLET DEPOSIT SUCCESSFUL!</b> ✅\n\n"
+            f"💰 <b>Amount Deposited:</b> ₹{amount:.2f}\n"
+            f"👛 <b>New Balance:</b> ₹{new_balance:.2f}\n\n"
+            f"Your wallet has been credited. You can now use it for instant purchases! 🚀"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "👛 View Wallet", "callback_data": "view_wallet"}],
+                [{"text": "🛍️ Browse Products", "callback_data": "view_products"}]
+            ]
+        }
+        await send_telegram_message(telegram_id, msg, reply_markup=keyboard)
+        logger.info(f"Wallet deposit of ₹{amount} credited to telegram_id {telegram_id}. New balance: ₹{new_balance}")
+    else:
+        logger.error(f"Failed to credit wallet for telegram_id {telegram_id}")
+        await send_telegram_message(telegram_id, "❌ There was an error crediting your wallet. Please contact support with your payment ID.")
+
+    # Notify admin
+    if ADMIN_TELEGRAM_ID:
+        admin_msg = (
+            f"🔔 <b>WALLET DEPOSIT</b> 🔔\n\n"
+            f"👤 <b>User:</b> {telegram_id}\n"
+            f"💰 <b>Amount:</b> ₹{amount:.2f}\n"
+            f"🆔 <b>Payment ID:</b> <code>{payment_id}</code>"
+        )
+        await send_telegram_message(int(ADMIN_TELEGRAM_ID), admin_msg)
+
 @app.post("/webhook/razorpay")
 async def razorpay_webhook(
     request: Request,
@@ -228,14 +280,26 @@ async def razorpay_webhook(
         order_id = payment_entity.get("order_id") or payment_id # Order ID or fallback to Payment ID
         amount = payment_entity["amount"] / 100.0 # Convert from paise to rupees
         
-        # Process order completion in background tasks
-        background_tasks.add_task(
-            process_digital_delivery,
-            order_id,
-            payment_id,
-            amount,
-            payload
-        )
+        # Check if this is a wallet deposit
+        notes = payment_entity.get("notes", {})
+        if notes.get("type") == "wallet_deposit":
+            # Process wallet deposit
+            background_tasks.add_task(
+                process_wallet_deposit,
+                notes,
+                payment_id,
+                amount,
+                payload
+            )
+        else:
+            # Process order completion in background tasks
+            background_tasks.add_task(
+                process_digital_delivery,
+                order_id,
+                payment_id,
+                amount,
+                payload
+            )
         
     return {"status": "ok"}
 
