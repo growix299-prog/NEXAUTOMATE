@@ -118,13 +118,13 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not orders:
         await update.message.reply_text(
-            text="<blockquote>📜 <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
+            text="<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="HTML"
         )
         return
 
-    history_text = "<blockquote>📜 <b>YOUR RECENT ORDERS:</b>\n\n"
+    history_text = "<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>YOUR RECENT ORDERS:</b>\n\n"
     for idx, order in enumerate(orders[:10], 1):
         prod = order.get("products") or {}
         prod_name = prod.get("name", "Unknown Product")
@@ -199,7 +199,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
         ]
         await query.edit_message_text(
-            text="<blockquote>🛒 <b>CATEGORIES</b>\n\nPlease select a product category below:</blockquote>",
+            text="<blockquote><tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji> <b>CATEGORIES</b>\n\nPlease select a product category below:</blockquote>",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
@@ -321,12 +321,12 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             products = []
             error_msg = str(e)
         else:
-            error_msg = "No products found in DB."
+        error_msg = "No products found in DB."
 
         if not products:
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
             await query.edit_message_text(
-                text=f"🛒 <b>Available {category} Products:</b>\n\nCurrently out of stock. Please check back later!",
+                text=f"<tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji> <b>Available {category} Products:</b>\n\nCurrently out of stock. Please check back later!",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode="HTML"
             )
@@ -344,7 +344,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
 
         await query.edit_message_text(
-            text=f"🛒 <b>Available Products:</b>\n\nChoose a product below:",
+            text=f"<tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji> <b>Available Products:</b>\n\nChoose a product below:",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
@@ -567,11 +567,11 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "view_wallet":
         balance = get_wallet_balance(user.id)
         wallet_text = (
-            f"👛 𝐌𝐘 𝐖𝐀𝐋𝐋𝐄𝐓\n"
+            f"<tg-emoji emoji-id=\"5271604874419647061\">👛</tg-emoji> 𝐌𝐘 𝐖𝐀𝐋𝐋𝐄𝐓\n"
             f"▬▬▬▬▬▬▬▬▬▬▬\n\n"
-            f"💰 <b>Current Balance:</b> ₹{balance:.2f}\n\n"
+            f"<tg-emoji emoji-id=\"5350710934992069206\">💰</tg-emoji> <b>Current Balance:</b> ₹{balance:.2f}\n\n"
             f"▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"📌 Add funds to your wallet for instant one-tap purchases!\n"
+            f"<tg-emoji emoji-id=\"5352825278672412291\">📌</tg-emoji> Add funds to your wallet for instant one-tap purchases!\n"
             f"Minimum deposit: ₹100.00"
         )
         keyboard = [
@@ -647,13 +647,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         transactions = get_wallet_transactions(user.id, limit=10)
         if not transactions:
             await query.edit_message_text(
-                text="🧾 <b>TRANSACTION HISTORY</b>\n\nNo transactions yet. Add funds to get started!",
+                text="<blockquote><tg-emoji emoji-id=\"5416117059207572332\">🧾</tg-emoji> <b>TRANSACTION HISTORY</b>\n\nNo transactions yet. Add funds to get started!</blockquote>",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Wallet", callback_data="view_wallet")]]),
                 parse_mode="HTML"
             )
             return
 
-        history_text = "🧾 𝐓𝐑𝐀𝐍𝐒𝐀𝐂𝐓𝐈𝐎𝐍 𝐇𝐈𝐒𝐓𝐎𝐑𝐘\n▬▬▬▬▬▬▬▬▬▬▬\n\n"
+        history_text = "<tg-emoji emoji-id=\"5416117059207572332\">🧾</tg-emoji> 𝐓𝐑𝐀𝐍𝐒𝐀𝐂𝐓𝐈𝐎𝐍 𝐇𝐈𝐒𝐓𝐎𝐑𝐘\n▬▬▬▬▬▬▬▬▬▬▬\n\n"
         for idx, txn in enumerate(transactions, 1):
             t_type = txn.get("transaction_type", "")
             if t_type == "DEPOSIT":
@@ -765,13 +765,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         if not orders:
             await query.edit_message_text(
-                text="<blockquote>📜 <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
+                text="<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
                 parse_mode="HTML"
             )
             return
 
-        history_text = "<blockquote>📜 <b>YOUR RECENT ORDERS:</b>\n\n"
+        history_text = "<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>YOUR RECENT ORDERS:</b>\n\n"
         for idx, order in enumerate(orders[:10], 1):
             prod = order.get("products") or {}
             prod_name = prod.get("name", "Unknown Product")
