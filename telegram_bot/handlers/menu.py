@@ -321,7 +321,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             products = []
             error_msg = str(e)
         else:
-        error_msg = "No products found in DB."
+            error_msg = "No products found in DB."
 
         if not products:
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
