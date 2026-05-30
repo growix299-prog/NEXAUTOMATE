@@ -67,7 +67,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         keyboard = [
             [InlineKeyboardButton("🔴 Join Channel 🔴", url="https://t.me/+sJB0j6oVALI0MmRh", **{"style": "danger"} if True else {})],
-            [InlineKeyboardButton("<tg-emoji emoji-id=\"5206607081334906820\">✅</tg-emoji> I've Joined", callback_data="check_joined")]
+            [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
         ]
         await update.message.reply_text(
             text=banner,
@@ -239,7 +239,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             )
             keyboard = [
                 [InlineKeyboardButton("🔴 Join Channel 🔴", url="https://t.me/+sJB0j6oVALI0MmRh", **{"style": "danger"} if True else {})],
-                [InlineKeyboardButton("<tg-emoji emoji-id=\"5206607081334906820\">✅</tg-emoji> I've Joined", callback_data="check_joined")]
+                [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
             ]
             await query.edit_message_text(
                 text=banner,
@@ -259,7 +259,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             )
             keyboard = [
                 [InlineKeyboardButton("🔴 Join Channel 🔴", url="https://t.me/+sJB0j6oVALI0MmRh", **{"style": "danger"} if True else {})],
-                [InlineKeyboardButton("<tg-emoji emoji-id=\"5206607081334906820\">✅</tg-emoji> I've Joined", callback_data="check_joined")]
+                [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
             ]
             await query.edit_message_text(
                 text=banner,
@@ -302,7 +302,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             )
             keyboard = [
                 [InlineKeyboardButton("🔴 Join Channel 🔴", url="https://t.me/+sJB0j6oVALI0MmRh", **{"style": "danger"} if True else {})],
-                [InlineKeyboardButton("<tg-emoji emoji-id=\"5206607081334906820\">✅</tg-emoji> I've Joined", callback_data="check_joined")]
+                [InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")]
             ]
             await query.edit_message_text(
                 text=banner,
