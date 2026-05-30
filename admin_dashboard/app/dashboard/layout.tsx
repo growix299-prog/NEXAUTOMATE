@@ -80,7 +80,7 @@ export default function DashboardLayout({
 
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-cyber-fbi/80 backdrop-blur-md border-r border-cyber-border z-30 flex flex-col justify-between fixed top-0 bottom-0">
-        <div>
+        <div className="flex-1 overflow-y-auto">
           {/* Header Panel */}
           <div className="p-6 border-b border-cyber-border flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-yellow-950 border border-yellow-500/40 flex items-center justify-center shadow-glow-yellow">
