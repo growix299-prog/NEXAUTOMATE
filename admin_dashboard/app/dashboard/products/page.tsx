@@ -232,9 +232,13 @@ export default function ProductsPage() {
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black font-sfpro uppercase ${
                       prod.category === 'OTT' 
                         ? 'bg-purple-950/80 text-purple-400 border border-purple-500/20' 
+                        : prod.category === 'AI'
+                        ? 'bg-blue-950/80 text-blue-400 border border-blue-500/20'
+                        : prod.category === 'VideoEditing'
+                        ? 'bg-pink-950/80 text-pink-400 border border-pink-500/20'
                         : 'bg-yellow-950/80 text-yellow-400 border border-yellow-500/20'
                     }`}>
-                      {prod.category}
+                      {prod.category === 'VideoEditing' ? 'VIDEO EDITING' : prod.category}
                     </span>
                     <span className="text-lg font-black font-sfpro text-emerald-400">
                       ₹{parseFloat(prod.price).toFixed(2)}
@@ -320,6 +324,8 @@ export default function ProductsPage() {
                   >
                     <option value="Games">Games</option>
                     <option value="OTT">OTT</option>
+                    <option value="AI">AI Subscriptions</option>
+                    <option value="VideoEditing">Video Editing</option>
                   </select>
                 </div>
                 <div>

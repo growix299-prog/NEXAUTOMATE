@@ -204,6 +204,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         keyboard = [
             [InlineKeyboardButton("📺 OTT Subscriptions", callback_data="cat_OTT")],
             [InlineKeyboardButton("🎮 Game Accounts", callback_data="cat_Games")],
+            [InlineKeyboardButton("🤖 AI Subscriptions", callback_data="cat_AI")],
+            [InlineKeyboardButton("🎬 Video Editing", callback_data="cat_VideoEditing")],
             [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
         ]
         await query.edit_message_text(
