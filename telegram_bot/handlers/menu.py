@@ -125,14 +125,23 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orders = []
 
     if not orders:
+        empty_text = (
+            f"<b>ORDER HISTORY</b> <tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"YOU HAVEN'T MADE ANY PURCHASES YET. START SHOPPING TO ACCESS PREMIUM PRODUCTS! <tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        )
         await update.message.reply_text(
-            text="<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
+            text=empty_text,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="HTML"
         )
         return
 
-    history_text = "<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>YOUR RECENT ORDERS:</b>\n\n"
+    history_text = (
+        f"<b>YOUR RECENT ORDERS</b> <tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji>\n"
+        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+    )
     for idx, order in enumerate(orders[:10], 1):
         prod = order.get("products") or {}
         prod_name = prod.get("name", "Unknown Product")
@@ -144,7 +153,7 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         history_text += f"{idx}. <b>{prod_name}</b>\n   💰 ₹{float(order.get('amount', 0)):.2f} | 📅 {order.get('created_at', '')[:10]}\n   🚚 Status: {status}\n\n"
         
-    history_text += "</blockquote>"
+    history_text += f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
     
     await update.message.reply_text(
         text=history_text,
@@ -211,8 +220,15 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("🎬 Video Editing", callback_data="cat_VideoEditing")],
             [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
         ]
+        products_text = (
+            f"<b>OUR PRODUCTS</b> <tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"BROWSE OUR CATALOG OF PREMIUM DIGITAL SERVICES <tg-emoji emoji-id=\"5352825278672412291\">✅</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"PLEASE SELECT A CATEGORY BELOW <tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji><tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji><tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji>"
+        )
         await query.edit_message_text(
-            text="<blockquote><tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji> <b>CATEGORIES</b>\n\nPlease select a product category below:</blockquote>",
+            text=products_text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="HTML"
         )
@@ -594,12 +610,14 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "view_wallet":
         balance = get_wallet_balance(user.id)
         wallet_text = (
-            f"<tg-emoji emoji-id=\"5271604874419647061\">👛</tg-emoji> 𝐌𝐘 𝐖𝐀𝐋𝐋𝐄𝐓\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬\n\n"
-            f"<tg-emoji emoji-id=\"5350710934992069206\">💰</tg-emoji> <b>Current Balance:</b> ₹{balance:.2f}\n\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"<tg-emoji emoji-id=\"5352825278672412291\">📌</tg-emoji> Add funds to your wallet for instant one-tap purchases!\n"
-            f"Minimum deposit: ₹100.00"
+            f"<b>MY WALLET</b> <tg-emoji emoji-id=\"5271604874419647061\">👛</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"<b>CURRENT BALANCE:</b> ₹{balance:.2f} <tg-emoji emoji-id=\"5350710934992069206\">💰</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"ADD FUNDS TO YOUR WALLET FOR INSTANT PURCHASES <tg-emoji emoji-id=\"5352825278672412291\">✅</tg-emoji>\n"
+            f"MINIMUM DEPOSIT: ₹100.00\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"CHOOSE AN OPTION BELOW <tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji><tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji><tg-emoji emoji-id=\"5406745015365943482\">⬇️</tg-emoji>"
         )
         keyboard = [
             [InlineKeyboardButton("➕ Add Funds", callback_data="wallet_deposit")],
@@ -791,14 +809,23 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             orders = []
 
         if not orders:
+            empty_text = (
+                f"<b>ORDER HISTORY</b> <tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji>\n"
+                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                f"YOU HAVEN'T MADE ANY PURCHASES YET. START SHOPPING TO ACCESS PREMIUM PRODUCTS! <tg-emoji emoji-id=\"5215203655946346044\">🛒</tg-emoji>\n"
+                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+            )
             await query.edit_message_text(
-                text="<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>ORDER HISTORY</b>\n\nYou haven't made any purchases yet. Start shopping to access premium products!</blockquote>",
+                text=empty_text,
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
                 parse_mode="HTML"
             )
             return
 
-        history_text = "<blockquote><tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji> <b>YOUR RECENT ORDERS:</b>\n\n"
+        history_text = (
+            f"<b>YOUR RECENT ORDERS</b> <tg-emoji emoji-id=\"4938318633475507037\">📜</tg-emoji>\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+        )
         for idx, order in enumerate(orders[:10], 1):
             prod = order.get("products") or {}
             prod_name = prod.get("name", "Unknown Product")
@@ -810,7 +837,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 
             history_text += f"{idx}. <b>{prod_name}</b>\n   💰 ₹{float(order.get('amount', 0)):.2f} | 📅 {order.get('created_at', '')[:10]}\n   🚚 Status: {status}\n\n"
             
-        history_text += "</blockquote>"
+        history_text += f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
             
         await query.edit_message_text(
             text=history_text,
